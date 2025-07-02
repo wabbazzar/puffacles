@@ -1,451 +1,445 @@
-# Hop Hop Puff - Cross-Platform Game Development Plan - Fully Autonomous Implementation
+# Puffacles Cross-Platform Game Development Plan - Fully Autonomous Implementation
 
 ## Critical Success Factors
-- Mobile-first Phaser.js game implementation with desktop enhancement
-- Touch-first virtual D-pad controls with keyboard fallback
-- Responsive sprite-based character animation system
-- Cross-platform 60 FPS performance optimization
-- PWA functionality for app-like mobile gaming experience
-- Kitchen-themed Donkey Kong mechanics with cat character
-- Comprehensive accessibility across mobile and desktop platforms
-- Cache-busting for mobile and desktop game asset loading
+- **Mobile-first platformer controls** with touch-friendly jump/movement buttons
+- **Smooth camera following** that works on both mobile and desktop viewports
+- **Touch-first interaction design** with desktop keyboard enhancement
+- **60 FPS performance** on mobile devices with 9-life health system
+- **PWA functionality** for app-like gaming experience
+- **Cross-platform obstacle collision** detection and visual feedback
+- **Unified input handling** for touch, mouse, and keyboard controls
+- **Git-driven development** with phase-based commits for autonomous progress
+- **Approximately 5 minutes** of engaging cross-platform gameplay
 
-## Core Game Requirements from Spec
-- **Engine**: Phaser.js HTML5 game framework
-- **Character**: Puffy the cat with 4x4 sprite sheet (48x48 display, 32x32 hitbox)
-- **Objective**: Climb kitchen platforms to reach beef jerky at top
-- **Lives**: 3 lives system with level restart on death
-- **Platforms**: 6 horizontal levels with 2-3 ladders each (some broken)
-- **Hazards**: Flying insects (bottom-up) and rolling fruits (top-down gravity)
-- **Controls**: Virtual D-pad (mobile), WASD keys (desktop)
-- **Performance**: 60 FPS on mobile and desktop
-- **Responsive**: iPhone-first, auto-adapting to all devices
+## Phase -1: Project Initialization & Development Environment
+### CRITICAL: DO THESE FIRST - BEFORE ANY OTHER WORK
+
+1. **Create Cursor Rule (MANDATORY)**
+   ```
+   Cross-Platform Game Development: Mobile-first platformer with touch controls and desktop keyboard enhancement. 
+   Unified input methods for touch/mouse/keyboard. 60 FPS performance on mobile. PWA game features by default. 
+   Git commits after each phase. Camera following system mobile-optimized. Touch-friendly UI (44px+ targets). 
+   Visual verification on mobile before desktop. Game test harness creation mandatory.
+   ```
+
+2. **Generate/Verify Makefile (IMMEDIATE PRIORITY)**
+   - Create Makefile with mobile-ready server (0.0.0.0 binding)
+   - Include all cross-platform game testing commands
+   - Add git workflow helpers for autonomous development
+   - Ensure touch event testing capabilities
+
+3. **Initialize Git Repository**
+   - `make git-init` - Initialize repository with initial commit
+   - Set up phase-based commit workflow
+   - Create development branch structure
 
 ## Phase 0: Cross-Platform Game Environment Setup & Visual Test Infrastructure
+### ALWAYS START HERE AFTER INITIALIZATION - NO EXCEPTIONS
 
-### 0.1: Project Structure & Mobile-First Foundation ✅ COMPLETED
-**Mobile Visual Test First**: Verify basic game canvas renders on mobile viewport
-- [x] Create directory structure:
-  ```
-  hop-hop-puff/
-  ├── index.html (mobile-first game entry)
-  ├── mobile_test.html (touch interaction testing)
-  ├── visual_test.html (cross-platform render verification)
-  ├── game/
-  │   ├── main.js (Phaser game initialization)
-  │   ├── scenes/ (game scenes)
-  │   ├── sprites/ (character and asset management)
-  │   └── input/ (unified input handling)
-  ├── assets/
-  │   ├── puffy_sprite_4x4.png
-  │   ├── kitchen/ (platform/ladder graphics)
-  │   └── hazards/ (insects, fruits)
-  ├── styles/
-  │   ├── mobile.css (touch-first styling)
-  │   └── desktop.css (keyboard enhancement)
-  └── Makefile (cross-platform commands)
-  ```
+1. **Mobile-First Game Foundation**
+   - Create mobile-optimized HTML5 Canvas setup (320px-428px responsive)
+   - Configure mobile viewport with game-appropriate scaling
+   - Set up touch event handling infrastructure for platformer controls
+   - Implement mobile-first CSS with game UI positioning
+   - Add cache-busting headers for mobile and desktop game assets
 
-### 0.2: Mobile-First Phaser.js Setup ✅ COMPLETED
-**Mobile Visual Test**: Game canvas responsive scaling on 320px-428px screens
-- [x] Create mobile-optimized HTML template with viewport configuration
-- [x] Initialize Phaser.js with mobile-first responsive scaling:
-  ```javascript
-  const config = {
-    type: Phaser.AUTO,
-    scale: {
-      mode: Phaser.Scale.FIT,
-      parent: 'game-container',
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: 320, // iPhone base width
-      height: 640  // 2:1 ratio for kitchen climbing
-    }
-  };
-  ```
-- [x] Test game canvas fits mobile screens without horizontal scroll
-- [x] Verify touch events register on canvas
+2. **Cross-Platform Game Test Harness**
+   - Create `mobile_game_test.html` with touch control simulation
+   - Build `desktop_game_test.html` with keyboard control testing
+   - Implement touch gesture recognition for jump/movement
+   - Set up visual verification for Puffy character rendering
+   - Create camera following test with mobile viewport constraints
+   - Add performance monitoring for 60 FPS game loop verification
 
-### 0.3: Cross-Platform Visual Test Harness ✅ COMPLETED
-**Mobile Visual Test**: Touch interaction detection and visual feedback
-- [x] Create `mobile_test.html` with touch event simulation:
-  - Test virtual D-pad touch detection (44px+ targets)
-  - Verify touch feedback (visual response <50ms)
-  - Test gesture recognition (swipe vs tap differentiation)
-- [x] Create `visual_test.html` for cross-platform verification:
-  - Mobile viewport testing (320px-428px)
-  - Desktop viewport testing (1024px+)
-  - Game canvas scaling comparison
-  - Character sprite rendering verification
-- [x] Test Phaser.js performance monitoring on mobile and desktop
-- [x] Create browser cache-busting system for game assets
+3. **Unified Input System Foundation**
+   - Design single input handler for touch/mouse/keyboard
+   - Create touch-friendly virtual controls (jump button, movement)
+   - Implement desktop keyboard controls (arrow keys, spacebar)
+   - Test input responsiveness on mobile (<50ms touch response)
+   - Verify desktop keyboard shortcuts and controls
 
-### 0.4: Makefile Cross-Platform Commands ✅ COMPLETED
-**Mobile Visual Test**: All make commands work on mobile browser
-- [x] Create Makefile with whitelisted cross-platform commands:
-```makefile
-.PHONY: serve game-test mobile-test visual-test touch-test device-test verify-render clean-cache debug-render auto-test pwa-test
+4. **PWA Game Setup**
+   - Create game manifest.json with landscape/portrait support
+   - Set up service worker for offline game capability
+   - Configure game icons for mobile installation
+   - Enable fullscreen game mode for mobile devices
 
-# Mobile-ready game server
-serve:
-	@python3 -m http.server 8000 --bind 0.0.0.0 || python -m SimpleHTTPServer 8000
+**Git Checkpoint**: `git commit -m "Phase 0: Cross-platform game environment and test infrastructure"`
 
-# Cross-platform game testing
-game-test:
-	@open http://localhost:8000/index.html || xdg-open http://localhost:8000/index.html
+## Phase 1: Mobile-First Core Platformer Experience
+### Mobile Implementation with Desktop Enhancement
 
-# Mobile-specific game testing
-mobile-test:
-	@open http://localhost:8000/mobile_test.html || xdg-open http://localhost:8000/mobile_test.html
+1. **Mobile-First Character Movement**
+   - **Mobile Visual Test First**: Create touch control test for Puffy movement
+   - Implement touch-based movement controls (virtual D-pad or swipe)
+   - Add touch jump button with haptic feedback (where supported)
+   - Test character movement on mobile browsers (iOS Safari, Chrome Mobile)
+   - Verify 60 FPS performance during character movement on mobile
+   - Ensure touch targets are 44px+ for accessibility
 
-# Touch control testing
-touch-test:
-	@open http://localhost:8000/touch_test.html || xdg-open http://localhost:8000/touch_test.html
+2. **Desktop Enhancement for Character Controls**
+   - Add keyboard controls (arrow keys for movement, spacebar for jump)
+   - Implement mouse click alternatives for movement
+   - Enhance with desktop-specific control feedback
+   - Test keyboard responsiveness and key repeat handling
+   - Add desktop-specific visual feedback for controls
 
-# Cross-platform visual verification
-visual-test:
-	@open http://localhost:8000/visual_test.html || xdg-open http://localhost:8000/visual_test.html
+3. **Simple Camera Following System**
+   - **Mobile Visual Test**: Camera centers Puffy when moving right on mobile viewport
+   - Implement basic camera following (simplest approach as specified)
+   - Test camera smoothness on mobile devices (avoid jitter)
+   - Add left boundary system (prevent excessive left scrolling)
+   - Verify camera following works across different mobile screen sizes
+   - Test desktop camera following with keyboard controls
 
-# Device testing information
-device-test:
-	@echo "Connect mobile device and navigate to: http://[your-ip]:8000/"
-	@ifconfig | grep "inet " | grep -v 127.0.0.1 || ipconfig
+4. **Cross-Platform Visual Verification**
+   - Test Puffy sprite rendering on mobile and desktop
+   - Verify smooth movement animations across platforms
+   - Check camera following responsiveness on touch vs keyboard
+   - Validate character positioning consistency
+   - Test performance during movement on both platforms
 
-# Game render verification
-verify-render:
-	@open http://localhost:8000/render_verify.html
+**Git Checkpoint**: `git commit -m "Phase 1: Mobile-first character movement and camera following"`
 
-# Game asset cache management
-clean-cache:
-	@echo "Desktop: Ctrl+Shift+R (Win/Linux) or Cmd+Shift+R (Mac)"
-	@echo "Mobile Safari: Settings > Safari > Clear History and Website Data"
-	@echo "Chrome Mobile: Menu > History > Clear browsing data"
+## Phase 2: Cross-Platform Health System & Basic Collision
+### Health Management with Visual Feedback
 
-# Debug game render pipeline
-debug-render:
-	@open http://localhost:8000/debug_render.html
+1. **Mobile-First Health Display**
+   - **Mobile Visual Test**: 9-life health display visible on mobile screens
+   - Create touch-friendly health UI (hearts, numbers, or bars)
+   - Position health display for mobile viewport (top corners)
+   - Test health display readability on small screens
+   - Implement health loss visual feedback (screen flash, vibration)
 
-# Automated cross-platform game test suite
-auto-test:
-	@node game_test_runner.js || python game_test_runner.py
+2. **Desktop Health Enhancement**
+   - Enhance health display for larger desktop screens
+   - Add desktop-specific health information (detailed stats)
+   - Implement desktop visual feedback for health changes
+   - Test health display positioning across desktop resolutions
 
-# PWA game testing
-pwa-test:
-	@open http://localhost:8000/pwa_test.html
-```
+3. **Basic Collision Detection System**
+   - **Mobile Visual Test**: Collision detection works with touch controls
+   - Implement simple rectangle-based collision detection
+   - Test collision accuracy during touch-based movement
+   - Add collision visual feedback (character flash, sound effects)
+   - Verify collision detection performance on mobile (60 FPS maintained)
 
-## Phase 1: Mobile-First Character System & Touch Controls
+4. **Game Over Mechanics**
+   - Create mobile-friendly game over screen
+   - Implement restart functionality with touch controls
+   - Add desktop keyboard restart options
+   - Test game state reset across platforms
 
-### 1.1: Mobile-First Sprite System ✅ COMPLETED
-**Mobile Visual Test**: Puffy sprite renders correctly on mobile screens (asset located in assets/puffy_4_by_4.png)
-- [x] Implement Phaser.js sprite sheet loading for 4x4 character sheet:
-  - Pre-slice all 16 frames at load time for mobile performance
-  - Row 1: Walking up/away (ladder climbing animation)
-  - Row 2: Walking left (4 frames)
-  - Row 3: Walking down/toward (4 frames)  
-  - Row 4: Walking right (needs to be horizontally flipped - it is exactly the same as row 2)
-- [x] Configure sprite display: 48x48 pixels (mobile-optimized size)
-- [x] Configure collision hitbox: 32x32 pixels centered in sprite
-- [x] Test sprite animation performance on mobile (60 FPS requirement)
-- [x] Create mobile visual test for sprite animation cycling
+**Git Checkpoint**: `git commit -m "Phase 2: Cross-platform health system and collision detection"`
 
-### 1.2: Touch-First Movement Controls ⚠️ PARTIALLY COMPLETED
-**Mobile Visual Test**: Virtual D-pad responds to touch with visual feedback
-- [x] Create virtual D-pad for mobile:
-  - Position in bottom corners (thumb-accessible zones)
-  - 44px+ touch targets for accessibility
-  - Visual feedback on touch (highlight/scale effect)
-  - Support for diagonal movement (up-left, up-right, etc.)
-- [x] Implement unified input handling:
-```javascript
-// Unified movement handler for touch and keyboard
-class UnifiedInputManager {
-    constructor(scene) {
-        this.scene = scene;
-        this.setupTouchControls(); // Mobile first
-        this.setupKeyboardControls(); // Desktop enhancement
-    }
-    
-    handleMovement(direction, inputType) {
-        // Single method handles touch, mouse, keyboard
-        const speed = 100; // pixels per second from spec
-        // Implementation handles both mobile touch and desktop keys
-    }
-}
-```
-- [ ] Test touch response time (<50ms from spec)
-- [x] Verify smooth analog movement (not grid-based per spec)
+## Phase 3: Static Obstacles & Basic Platforming
+### Foundation Obstacles with Cross-Platform Testing
 
-### 1.3: Mobile-First Character Movement ✅ COMPLETED
-**Mobile Visual Test**: Puffy moves smoothly with touch controls and proper platform/ladder mechanics
-- [x] Implement character movement system:
-  - Speed: 100-120 pixels per second (constant from spec)
-  - Animation: Speed-based timing with 4-frame walk cycle (32 fps for natural movement)
-  - Direction-based sprite selection (up/down/left/right)
-- [x] Platform collision detection:
-  - Bottom pixels of sprite determine platform landing
-  - 32x32 hitbox collision with platforms
-  - 6-level Donkey Kong style platform structure
-- [x] Ladder climbing mechanics:
-  - Use up/away walking animation for climbing
-  - Sticky ladder zones with gravity cancellation
-  - Smooth transition between platform and ladder movement
-- [x] Test character movement on mobile touch screen
-- [x] Verify 60 FPS performance on mobile devices
+1. **Mobile-First Static Obstacles**
+   - **Mobile Visual Test**: Static blocks render and collide on mobile
+   - Create simple block obstacles (rectangles, platforms)
+   - Implement gap obstacles for jumping challenges
+   - Test obstacle collision with touch-based movement
+   - Verify obstacle visibility on mobile screens
+   - Ensure obstacles scale appropriately for mobile viewports
 
-## Phase 2: Desktop Enhancement & Keyboard Controls
+2. **Desktop Obstacle Enhancement**
+   - Enhance obstacle visual design for desktop screens
+   - Add desktop-specific obstacle details and effects
+   - Test obstacle interaction with keyboard controls
+   - Verify obstacle positioning across desktop resolutions
 
-### 2.1: Desktop Control Enhancement
-**Desktop Visual Test**: WASD keys control character with same smoothness as touch
-- [ ] Add WASD keyboard controls alongside virtual D-pad
-- [ ] Implement keyboard event handling in unified input manager
-- [ ] Add desktop-specific enhancements:
-  - Spacebar or 'P' for pause (from spec)
-  - Arrow keys as alternative to WASD
-  - ESC key for quick pause/menu access
-- [ ] Test keyboard responsiveness and repeat rates
-- [ ] Ensure mobile touch controls remain functional
+3. **Basic Level Generation**
+   - Create simple level layout with static obstacles
+   - Implement scrolling level system (moves with camera)
+   - Test level generation performance on mobile
+   - Add level boundary detection and handling
+   - Verify level scrolling smoothness across platforms
 
-### 2.2: Desktop UI Enhancements
-**Desktop Visual Test**: Game scales properly on larger screens with enhanced UI
-- [ ] Optimize game scaling for desktop resolutions (1024px+)
-- [ ] Enhance UI for larger screens:
-  - Larger score/lives display
-  - Better positioned pause menu
-  - Optional fullscreen mode
-- [ ] Add desktop-specific visual polish:
-  - Mouse hover effects on UI elements
-  - Keyboard shortcut indicators
-- [ ] Maintain mobile-first responsive behavior
+4. **Cross-Platform Platforming Mechanics**
+   - Test jumping over obstacles with touch and keyboard
+   - Verify gap jumping mechanics across input methods
+   - Test obstacle collision feedback on both platforms
+   - Validate platforming challenge difficulty for touch controls
 
-## Phase 3: Mobile-First Kitchen Level System
+**Git Checkpoint**: `git commit -m "Phase 3: Static obstacles and basic platforming mechanics"`
 
-### 3.1: Responsive Platform Generation
-**Mobile Visual Test**: Kitchen platforms scale correctly on all mobile screen sizes
-- [ ] Implement responsive platform system:
-  - 6 horizontal levels total (from spec)
-  - Platform width scales with screen width
-  - Platform thickness: fixed pixel height
-  - Kitchen-themed graphics and styling
-- [ ] Create ladder system:
-  - 2-3 ladders per level
-  - Some ladders broken (don't span full height per spec)
-  - Ladder length scales with screen height
-  - Proportional spacing to platform width
-- [ ] Test platform/ladder scaling on mobile viewports (320px-428px)
-- [ ] Verify collision detection accuracy at all scales
+## Phase 4: Moving Obstacles & Timing Challenges
+### Dynamic Elements with Predictable Patterns
 
-### 3.2: Mobile-First Level Layout
-**Mobile Visual Test**: Complete kitchen level renders properly on mobile
-- [ ] Implement classic Donkey Kong style level structure:
-  - Bottom platform: starting position
-  - Top platform: beef jerky goal location
-  - 4 middle platforms with varying ladder configurations
-- [ ] Add kitchen theming:
-  - Kitchen-appropriate platform graphics
-  - Beef jerky sprite for goal object
-  - Kitchen background elements
-- [ ] Test level navigation on mobile touch controls
-- [ ] Verify beef jerky goal collision detection
+1. **Mobile-First Moving Platforms**
+   - **Mobile Visual Test**: Moving platforms work with touch controls
+   - Implement simple moving platforms with predictable patterns
+   - Test platform timing with touch-based jumping
+   - Verify moving platform collision detection on mobile
+   - Ensure smooth platform movement at 60 FPS on mobile
 
-## Phase 4: Mobile-First Hazard System
+2. **Desktop Moving Platform Enhancement**
+   - Add keyboard-friendly platform timing adjustments
+   - Enhance moving platform visual feedback for desktop
+   - Test platform interaction with keyboard controls
+   - Add desktop-specific platform movement patterns
 
-### 4.1: Touch-Optimized Hazard Mechanics
-**Mobile Visual Test**: Hazards appear and move smoothly on mobile screen
-- [ ] Implement flying insect system:
-  - Spawn from bottom of screen
-  - Move upward in straight paths
-  - Simple animation for insect sprites
-  - Random spawn intervals (unlimited simultaneous)
-- [ ] Implement rolling fruit system:
-  - Spawn from top of screen
-  - Roll down platforms following gravity
-  - DK-style rolling/bouncing physics
-  - Fruit sprites (apple, orange, etc.)
-- [ ] Test hazard performance with multiple simultaneous hazards on mobile
-- [ ] Verify hazard collision detection (instant death on contact)
+3. **Timing-Based Challenge System**
+   - Create predictable obstacle patterns (as specified)
+   - Implement pattern-based spawning system
+   - Test timing challenges with touch vs keyboard input
+   - Verify pattern predictability across platforms
+   - Add visual cues for timing-based obstacles
 
-### 4.2: Cross-Platform Hazard Performance
-**Mobile/Desktop Visual Test**: Hazards maintain 60 FPS on both platforms
-- [ ] Optimize hazard spawning and cleanup for mobile performance
-- [ ] Implement efficient collision detection for multiple hazards
-- [ ] Add visual death effects and respawn system
-- [ ] Test hazard physics accuracy across different screen sizes
-- [ ] Verify memory management for hazard cleanup
+4. **Cross-Platform Pattern Testing**
+   - Test moving obstacle patterns on mobile and desktop
+   - Verify timing consistency across different frame rates
+   - Test pattern learning curve for touch vs keyboard players
+   - Validate obstacle pattern difficulty progression
 
-## Phase 5: Mobile-First Game State Management
+**Git Checkpoint**: `git commit -m "Phase 4: Moving obstacles and timing-based challenges"`
 
-### 5.1: Touch-Friendly UI System
-**Mobile Visual Test**: Game UI readable and touchable on mobile screens
-- [ ] Implement top bar UI system:
-  - Lives remaining display (visual hearts/paw prints)
-  - Current score display
-  - Elapsed timer
-  - Pause button (44px+ touch target)
-- [ ] Create mobile-optimized game states:
-  - Start screen with large touch-friendly play button
-  - Game over screen with score display and restart
-  - Pause screen accessible during gameplay
-- [ ] Test UI readability on smallest supported mobile screens
-- [ ] Verify touch targets meet accessibility requirements
+## Phase 5: Arcade-Style Dodging Elements
+### Advanced Obstacle Patterns
 
-### 5.2: Mobile-First Scoring System
-**Mobile Visual Test**: Score updates smoothly during mobile gameplay
-- [ ] Implement scoring system:
-  - Higher score for lower completion time (from spec)
-  - Score display updates in real-time
-  - High score persistence using localStorage
-- [ ] Implement lives system:
-  - 3 lives total (from spec)
-  - Life lost on hazard collision
-  - Level restart on death
-  - Game over when all lives lost
-- [ ] Test scoring accuracy and persistence across browser sessions
+1. **Mobile-First Dodging Mechanics**
+   - **Mobile Visual Test**: Dodging works smoothly with touch controls
+   - Implement falling objects with predictable patterns
+   - Create side-scrolling hazards with learnable timing
+   - Test dodging responsiveness with touch input
+   - Verify dodging visual feedback on mobile screens
 
-## Phase 6: PWA & Cross-Platform Game Features
+2. **Desktop Dodging Enhancement**
+   - Add keyboard-specific dodging techniques
+   - Enhance dodging visual effects for desktop
+   - Test dodging precision with mouse/keyboard
+   - Add desktop-specific dodging challenges
 
-### 6.1: Progressive Web App Implementation
-**Mobile Visual Test**: Game installs as PWA on mobile devices
-- [ ] Create web app manifest for game installation:
-```json
-{
-  "name": "Hop Hop Puff",
-  "short_name": "HopHopPuff",
-  "description": "Help Puffy the cat climb through the kitchen to reach beef jerky",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#2D1B69",
-  "theme_color": "#00ffff",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "assets/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
-}
-```
-- [ ] Implement service worker for offline game caching
-- [ ] Test PWA installation on iOS Safari and Chrome Mobile
-- [ ] Verify offline gameplay functionality
+3. **Pattern-Based Obstacle Spawning**
+   - Create repeatable obstacle patterns (Tetris-style scaling)
+   - Implement pattern difficulty progression system
+   - Test pattern spawning performance on mobile
+   - Verify pattern predictability and learning curve
 
-### 6.2: Cross-Platform Game State Persistence
-**Mobile/Desktop Visual Test**: Game state persists across devices and sessions
-- [ ] Implement game progress persistence:
-  - High scores saved locally
-  - Game settings (sound on/off, difficulty)
-  - Last completed level progress
-- [ ] Add cross-platform save/load functionality
-- [ ] Test state persistence across mobile and desktop browsers
-- [ ] Implement data sync for multiple devices (if network available)
+4. **Cross-Platform Dodging Verification**
+   - Test dodging mechanics across all input methods
+   - Verify pattern recognition works on mobile and desktop
+   - Test dodging challenge difficulty balance
+   - Validate arcade-style gameplay feel
 
-## Phase 7: Performance Optimization & Polish
+**Git Checkpoint**: `git commit -m "Phase 5: Arcade-style dodging elements and patterns"`
 
-### 7.1: Mobile Performance Optimization
-**Mobile Visual Test**: Game maintains 60 FPS throughout entire gameplay session
-- [ ] Optimize Phaser.js configuration for mobile:
-  - Texture atlasing for sprite sheets
-  - Object pooling for hazards
-  - Efficient collision detection algorithms
-  - Memory cleanup for unused assets
-- [ ] Implement performance monitoring:
-  - FPS counter for debugging
-  - Memory usage tracking
-  - Touch latency measurement
-- [ ] Test performance on various mobile devices and browsers
-- [ ] Optimize for battery usage on mobile devices
+## Phase 6: Difficulty Scaling & Progression System
+### Tetris-Style Difficulty Increase
 
-### 7.2: Cross-Platform Audio System (Future Enhancement)
-**Mobile/Desktop Visual Test**: Game works perfectly without audio (per spec)
-- [ ] Prepare audio system architecture for future implementation:
-  - Sound effect loading system
-  - Background music management
-  - Mobile-friendly audio context handling
-  - Volume controls in settings menu
-- [ ] Note: Audio implementation deferred per spec (no current audio scope)
+1. **Mobile-First Difficulty Scaling**
+   - **Mobile Visual Test**: Difficulty scaling maintains 60 FPS on mobile
+   - Implement speed increase for obstacle patterns
+   - Add obstacle density scaling system
+   - Test difficulty progression with touch controls
+   - Verify mobile performance during high-difficulty sections
 
-### 7.3: Accessibility & Cross-Platform Compliance
-**Mobile/Desktop Visual Test**: Game accessible across all supported platforms
-- [ ] Implement WCAG compliance:
-  - Color contrast verification for UI elements
-  - Touch target size compliance (44px+ minimum)
-  - Screen reader compatibility for game state
-  - Keyboard navigation for all UI elements
-- [ ] Test accessibility features on mobile and desktop
-- [ ] Verify game works with assistive technologies
-- [ ] Add high contrast mode option
+2. **Desktop Difficulty Enhancement**
+   - Add desktop-specific difficulty adjustments
+   - Enhance difficulty visual feedback for larger screens
+   - Test difficulty scaling with keyboard controls
+   - Add desktop-specific high-difficulty challenges
+
+3. **Progressive Challenge System**
+   - Implement reduced safe spaces between obstacles
+   - Create difficulty curve for ~5 minutes of gameplay
+   - Test difficulty progression balance across platforms
+   - Add difficulty level visual indicators
+
+4. **Cross-Platform Difficulty Testing**
+   - Test difficulty scaling on mobile and desktop
+   - Verify challenge accessibility across input methods
+   - Test difficulty curve engagement and frustration levels
+   - Validate 5-minute gameplay target across platforms
+
+**Git Checkpoint**: `git commit -m "Phase 6: Difficulty scaling and progression system"`
+
+## Phase 7: Scoring System & Game Polish
+### Time-Based Scoring with Cross-Platform UI
+
+1. **Mobile-First Scoring Display**
+   - **Mobile Visual Test**: Score display readable during mobile gameplay
+   - Implement time-based scoring system
+   - Create mobile-friendly score UI positioning
+   - Add bonus points for remaining lives calculation
+   - Test scoring display visibility on mobile screens
+
+2. **Desktop Scoring Enhancement**
+   - Enhance score display for desktop screens
+   - Add detailed scoring breakdown for desktop
+   - Implement desktop-specific score features
+   - Test scoring UI across desktop resolutions
+
+3. **Game Completion & Restart System**
+   - Create game completion screen with final score
+   - Implement restart functionality for both platforms
+   - Add score persistence across game sessions
+   - Test game flow from start to completion
+
+4. **Cross-Platform UI Polish**
+   - Test all UI elements on mobile and desktop
+   - Verify touch target sizes (44px+) for mobile
+   - Test UI readability across different screen sizes
+   - Add accessibility features for both platforms
+
+**Git Checkpoint**: `git commit -m "Phase 7: Scoring system and cross-platform UI polish"`
+
+## Phase 8: PWA Integration & Cross-Platform Features
+### Progressive Web App Game Features
+
+1. **PWA Installation & Offline Play**
+   - Implement game manifest with proper game icons
+   - Set up service worker for offline gameplay
+   - Test PWA installation on mobile devices
+   - Verify offline game functionality
+
+2. **Cross-Platform State Persistence**
+   - Implement game state saving across sessions
+   - Add progress persistence for mobile and desktop
+   - Test state synchronization across platforms
+   - Add cloud save capability (if applicable)
+
+3. **Mobile-Specific Game Features**
+   - Add haptic feedback for mobile devices (where supported)
+   - Implement mobile-specific visual effects
+   - Add mobile game notifications (if applicable)
+   - Test mobile-specific performance optimizations
+
+4. **Desktop-Specific Game Features**
+   - Add desktop keyboard shortcuts
+   - Implement desktop-specific visual enhancements
+   - Add desktop performance optimizations
+   - Test desktop-specific game features
+
+**Git Checkpoint**: `git commit -m "Phase 8: PWA integration and cross-platform features"`
+
+## Phase 9: Performance Optimization & Final Testing
+### Cross-Platform Performance & Polish
+
+1. **Mobile Performance Optimization**
+   - Optimize for 60 FPS on mobile devices
+   - Reduce memory usage for mobile browsers
+   - Test battery usage optimization
+   - Verify smooth gameplay on older mobile devices
+
+2. **Desktop Performance Enhancement**
+   - Optimize desktop rendering performance
+   - Add desktop-specific performance features
+   - Test high-refresh-rate display support
+   - Verify desktop browser compatibility
+
+3. **Cross-Platform Accessibility**
+   - Test WCAG compliance for both platforms
+   - Verify touch accessibility on mobile
+   - Test keyboard accessibility on desktop
+   - Add screen reader support where applicable
+
+4. **Final Cross-Platform Testing**
+   - Test complete game flow on mobile and desktop
+   - Verify all features work across platforms
+   - Test game performance under various conditions
+   - Validate 5-minute gameplay target achievement
+
+**Git Checkpoint**: `git commit -m "Phase 9: Performance optimization and final testing"`
 
 ## Cross-Platform Debugging Procedures
 
 ### Mobile-Specific Debugging
-1. **Touch Issues**: Test on mobile browser dev tools first
-2. **Performance Problems**: Check mobile browser performance tab
-3. **Virtual D-pad Not Responding**:
-   - Verify touch event listeners attached
-   - Check CSS touch-action properties
-   - Validate touch target sizes (44px+)
-4. **Sprite Animation Stuttering**:
-   - Test Phaser.js performance on mobile
-   - Check texture memory usage
-   - Verify 60 FPS maintenance
+1. Test on mobile browser dev tools first
+2. Check touch event handling vs mouse events
+3. Verify responsive design breakpoints for game UI
+4. Test gesture recognition thresholds for game controls
+5. Check computed styles on mobile vs desktop
+6. Force repaint on both platforms during gameplay
+7. Create minimal reproduction for both platforms
 
-### Desktop-Specific Debugging
-1. **Keyboard Controls Not Working**:
-   - Verify keyboard event listeners
-   - Check focus management on game canvas
-   - Test key repeat rates
-2. **Scaling Issues on Large Screens**:
-   - Check Phaser.js scale configuration
-   - Verify CSS responsive design
-   - Test on various desktop resolutions
-
-### Cross-Platform Issues
-1. **Collision Detection Inconsistent**:
-   - Test hitbox visualization on both platforms
-   - Verify pixel-perfect collision at different scales
-   - Check for floating point precision issues
-2. **Performance Degradation**:
-   - Profile on both mobile and desktop
-   - Check memory leaks in hazard spawning
-   - Verify garbage collection efficiency
+### Game-Specific Debugging
+1. Verify game loop performance (60 FPS) on mobile
+2. Test collision detection accuracy across platforms
+3. Check camera following smoothness on different devices
+4. Verify obstacle pattern timing consistency
+5. Test input responsiveness (<50ms touch, immediate keyboard)
+6. Check game state persistence across platforms
 
 ## Cross-Platform Success Criteria
 
-### Visual Requirements
-- [ ] Game renders correctly on mobile (320px-428px) and desktop (1024px+)  
-- [ ] Virtual D-pad functional and responsive on mobile screens
-- [ ] Keyboard controls work seamlessly on desktop
-- [ ] Character sprite animations smooth at 60 FPS on both platforms
-- [ ] UI elements readable and accessible on all screen sizes
+### Visual Success Criteria
+- Puffy character renders consistently on mobile (320px+) and desktop (1024px+)
+- Camera following is smooth and centered during right movement
+- Health display is clearly visible on all screen sizes
+- Obstacles render properly and collision feedback is immediate
+- Game UI elements are touch-friendly (44px+) and desktop-accessible
 
-### Functional Requirements
-- [ ] Complete game playable start-to-finish on mobile touch
-- [ ] Complete game playable start-to-finish on desktop keyboard
-- [ ] Lives system, scoring, and timer work identically on both platforms
-- [ ] Hazard collision detection accurate across all screen sizes
-- [ ] PWA installation successful on mobile devices
+### Functional Success Criteria
+- Touch controls work smoothly on mobile devices
+- Keyboard controls are responsive on desktop
+- 9-life health system functions correctly across platforms
+- Obstacle collision detection is accurate for all input methods
+- Difficulty scaling maintains 60 FPS performance on mobile
 
-### Performance Requirements
-- [ ] 60 FPS maintained on mobile devices during full gameplay
-- [ ] 60 FPS maintained on desktop browsers during full gameplay
-- [ ] Touch response time <50ms on mobile devices
-- [ ] Game loads within 3 seconds on mobile networks
-- [ ] Memory usage remains stable during extended play sessions
+### Performance Success Criteria
+- 60 FPS gameplay maintained on mobile devices
+- Touch input response time under 50ms
+- Game loads and runs offline as PWA
+- Memory usage optimized for mobile browsers
+- Battery usage minimized during mobile gameplay
 
-### Cross-Platform Integration
-- [ ] Game state persists across browser sessions on both platforms
-- [ ] Cache-busting works for game assets on mobile and desktop browsers
-- [ ] Accessibility features functional on mobile and desktop
-- [ ] Offline gameplay available through PWA on mobile
+### Game Design Success Criteria
+- Approximately 5 minutes of engaging gameplay
+- Difficulty progression follows Tetris-style parameter scaling
+- Predictable obstacle patterns are learnable and fair
+- Camera following system works without jarring movements
+- Cross-platform gameplay feels consistent and enjoyable
 
-This comprehensive plan enables fully autonomous development of a cross-platform Hop Hop Puff game with mobile-first implementation and desktop enhancement, following all specification requirements while ensuring optimal performance and accessibility across all target platforms.
+## Makefile Commands for Autonomous Development
+
+```makefile
+# Mobile-ready development server
+serve:
+	@python3 -m http.server 8000 --bind 0.0.0.0
+
+# Cross-platform game testing
+game-test:
+	@open http://localhost:8000/game_test.html
+
+# Mobile game testing
+mobile-game-test:
+	@open http://localhost:8000/mobile_game_test.html
+
+# Touch control testing
+touch-game-test:
+	@open http://localhost:8000/touch_game_test.html
+
+# Performance testing
+performance-test:
+	@open http://localhost:8000/performance_test.html
+
+# PWA game testing
+pwa-game-test:
+	@open http://localhost:8000/pwa_test.html
+
+# Git workflow helpers
+git-phase:
+	@git add -A
+	@git status
+	@echo "Ready to commit phase completion"
+
+git-checkpoint:
+	@git add -A
+	@git commit -m "Checkpoint: Working game functionality before next feature"
+```
+
+## Final Implementation Notes
+
+This todo.md provides a complete roadmap for building Puffacles as a cross-platform game that works seamlessly on mobile devices and desktop browsers. The mobile-first approach ensures touch controls are primary, with desktop keyboard enhancements added progressively. Each phase includes specific visual testing requirements and git checkpoint commits to enable autonomous development progress tracking.
+
+The game will feature:
+- Touch-friendly platformer controls with desktop keyboard support
+- Smooth camera following optimized for mobile viewports
+- 9-life health system with cross-platform visual feedback
+- Progressive obstacle difficulty using simple parameter scaling
+- PWA functionality for app-like mobile gaming experience
+- Approximately 5 minutes of engaging cross-platform gameplay
+
+All development follows the mobile-first, git-driven methodology with phase-based commits and comprehensive cross-platform testing at each stage.

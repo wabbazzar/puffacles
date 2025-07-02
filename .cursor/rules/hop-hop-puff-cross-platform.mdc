@@ -1,0 +1,286 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Hop Hop Puff - Cross-Platform Game Development Rules
+
+## 🎮 Project Overview
+Hop Hop Puff is a mobile-first HTML5 game built with Phaser.js where Puffy the cat climbs through kitchen platforms to reach beef jerky. This project follows strict cross-platform development principles with mobile-first implementation and desktop enhancement.
+
+## 🏗️ Core Architecture Files
+- Entry Point: [index.html](mdc:index.html) - Mobile-first game entry with PWA configuration
+- Game Engine: [game/main.js](mdc:game/main.js) - Phaser.js mobile-first configuration and scene management
+- Character System: [game/sprites/PuffySprite.js](mdc:game/sprites/PuffySprite.js) - 4x4 sprite sheet with touch-optimized animations
+- Mobile Styles: [styles/mobile.css](mdc:styles/mobile.css) - Mobile-first responsive design foundation
+- Desktop Enhancement: [styles/desktop.css](mdc:styles/desktop.css) - Desktop-specific enhancements
+- Game Specification: [docs/spec.md](mdc:docs/spec.md) - Technical requirements and gameplay mechanics
+- Development Roadmap: [docs/todo.md](mdc:docs/todo.md) - Cross-platform implementation phases
+
+## 🚀 Cross-Platform Development Rules
+
+### 0. MANDATORY TESTING PROTOCOL (CRITICAL - NO EXCEPTIONS)
+- **EVERY change MUST be tested immediately after implementation**
+- **NEVER deliver code to the user without visual verification**
+- **Start local server and test both mobile and desktop views**
+- **Use browser dev tools to simulate mobile devices**
+- **Test all interactive elements (joystick, buttons, keyboard)**
+- **Verify animations, movement, and game mechanics work**
+- **If anything is broken, fix it before moving to next change**
+- **Document what was tested and what works/doesn't work**
+- **NO EXCEPTIONS - Testing is not optional, it's mandatory**
+
+### 1. MANDATORY COMMIT AND PUSH PROTOCOL (CRITICAL)
+- **EVERY working change MUST be committed AND pushed immediately**
+- **Use `git add -A && git commit -m "Description" && git push` after each successful implementation**
+- **NEVER leave uncommitted changes sitting locally**
+- **Push to remote repository ensures backup and collaboration**
+- **Descriptive commit messages with clear explanations**
+- **If push fails, resolve conflicts immediately before continuing**
+- **NO EXCEPTIONS - Every change must be version controlled and backed up**
+
+### 2. Mobile-First Implementation (CRITICAL)
+- **ALWAYS implement mobile experience before desktop**
+- Touch controls must work before keyboard controls
+- Virtual D-pad functionality takes priority over WASD keys
+- Test on mobile viewport (320px-428px) before desktop (1024px+)
+- Visual verification on mobile browsers before desktop browsers
+
+### 3. Phaser.js Framework Priority (MANDATORY)
+- **ALWAYS prioritize Phaser.js built-in mechanics over custom implementations**
+- Use Phaser physics system (Arcade, Matter.js) instead of custom physics
+- Leverage Phaser input management (keyboard, pointer, touch) over manual event handling
+- Utilize Phaser's sprite and animation systems for all game objects
+- Prefer Phaser's collision detection and group management
+- Use Phaser's scene management and state handling
+- Implement Phaser's asset loading and caching mechanisms
+- Take advantage of Phaser's cross-platform optimizations
+- **Benefits: Reduced bugs, better performance, automatic cross-platform compatibility**
+
+### 4. Unified Input Methods (MANDATORY)
+- Single methods handle touch, mouse, and keyboard input
+- Example: `handleUnifiedInput()` in [game/main.js](mdc:game/main.js)
+- Touch events, mouse events, and keyboard events use same handler
+- Consistent behavior across all input types
+- Event detection determines input type, not separate handlers
+
+### 5. Performance Requirements (NON-NEGOTIABLE)
+- **60 FPS on mobile devices** drives all optimization decisions
+- Touch response time must be <50ms
+- Phaser.js configuration optimized for mobile performance
+- Sprite rendering with pixel-perfect scaling
+- Memory management for mobile browsers
+
+### 6. Touch-Friendly Design (ESSENTIAL)
+- **44px+ minimum touch targets** for all interactive elements
+- Virtual D-pad buttons sized for thumb accessibility
+- Touch feedback within 50ms of contact
+- Gesture recognition for mobile interaction
+- Prevent zoom/scroll conflicts with game controls
+
+### 7. Responsive Design Architecture
+- Mobile-first CSS with desktop enhancement media queries
+- CSS Grid/Flexbox for responsive layouts
+- Viewport meta tag: `width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no`
+- Safe area support for iPhone X+ with `env(safe-area-inset-*)`
+- Dynamic viewport height handling with `calc(100vh - UI)`
+
+### 8. PWA Features (DEFAULT)
+- Web app manifest for installation capability
+- Service worker for offline functionality (when implemented)
+- App-like mobile experience with `display: standalone`
+- Touch icons for iOS/Android home screen
+- Cache-busting headers for mobile and desktop
+
+### 9. Cross-Platform Testing Protocol
+- Test mobile browsers first (Safari Mobile, Chrome Mobile)
+- Desktop browser testing second (Chrome, Firefox, Safari)
+- Touch event simulation for development
+- Visual verification harness for both platforms
+- Performance monitoring across devices
+
+### 10. Git-Driven Development (MANDATORY)
+- **Commit AND push after each successful phase completion**
+- **Commit AND push before attempting risky changes**
+- **Use `git add -A && git commit -m "Description" && git push` workflow**
+- Descriptive commit messages with phase numbers
+- Use `git status` to track uncommitted changes
+- Create checkpoints when tests pass and functionality is verified
+- **Always push to remote repository for backup and collaboration**
+
+### 11. Accessibility Compliance
+- WCAG compliance for mobile and desktop
+- Screen reader compatibility
+- High contrast mode support
+- Keyboard navigation for desktop users
+- Touch accessibility for mobile users
+
+### 12. Block System Architecture (Game-Specific)
+- 24x24px blocks (half of Puffy's 48px size)
+- Physics-based collision detection
+- Modular platform construction system
+- Mobile-optimized rendering performance
+- Touch-friendly block interaction
+
+## 🎯 Specific Implementation Patterns
+
+### Game Configuration (Mobile-First)
+```javascript
+// From game/main.js - Mobile-first Phaser.js setup
+this.mobileConfig = {
+    width: 320,        // iPhone base width
+    height: 568,       // Adjusted for mobile viewport
+    targetFPS: 60      // 60 FPS requirement
+};
+
+scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+}
+```
+
+### Unified Input Handling
+```javascript
+// Touch, mouse, and keyboard unified handler
+handleUnifiedInput(direction) {
+    // Single method for all input types
+    // Touch events from virtual D-pad
+    // Mouse events for desktop testing
+    // Keyboard events (WASD) for desktop
+}
+```
+
+### Mobile-First Styling
+```css
+/* Mobile-first approach in styles/mobile.css */
+.dpad-btn {
+    width: 50px;
+    height: 50px;  /* 44px+ touch target requirement */
+    touch-action: manipulation;
+}
+
+/* Desktop enhancement in styles/desktop.css */
+@media (min-width: 1024px) {
+    /* Desktop-specific enhancements */
+}
+```
+
+## 🚨 Critical Error Prevention
+
+### Mobile Viewport Issues
+- Never use fixed positioning without mobile consideration
+- Always account for virtual keyboard space
+- Test canvas scaling with mobile viewport constraints
+- Verify UI elements don't overlap game area
+
+### Performance Degradation
+- Monitor FPS on mobile devices continuously
+- Optimize sprite rendering for mobile GPUs
+- Manage memory usage for long gaming sessions
+- Test performance with multiple game objects
+
+### Cross-Platform Input Conflicts
+- Prevent desktop mouse events from interfering with touch
+- Ensure keyboard shortcuts don't conflict with mobile browsers
+- Test virtual D-pad on desktop browsers
+- Verify touch events work on touch-enabled desktops
+
+## 📱 Mobile-Specific Requirements
+
+### Virtual Controls
+- D-pad positioned in thumb-accessible zones
+- Visual feedback on touch (highlight/scale effect)
+- Support for diagonal movement
+- Prevent accidental touches during gameplay
+
+### Performance Optimization
+- Phaser.js configured for mobile: `antialias: false`, `pixelArt: true`
+- Texture atlasing for sprite efficiency
+- Object pooling for game entities
+- Garbage collection optimization
+
+### Touch Event Handling
+```javascript
+// From game/main.js - Mobile touch event setup
+btn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    this.startMovement(direction);
+}, { passive: false });
+```
+
+## 🖥️ Desktop Enhancement Patterns
+
+### Keyboard Controls
+- WASD keys as primary desktop controls
+- Spacebar/P for pause functionality
+- Arrow keys as alternative navigation
+- ESC for quick menu access
+
+### Visual Enhancements
+- Larger UI elements for desktop screens
+- Enhanced visual effects for higher-performance devices
+- Mouse hover states and interactions
+- Desktop-specific fullscreen options
+
+## 🔧 Development Workflow
+
+### Phase-Based Development
+1. **Phase 0**: Mobile-first test infrastructure
+2. **Phase 1**: Mobile touch controls and character movement
+3. **Phase 2**: Desktop keyboard enhancement
+4. **Phase 3**: PWA features and cross-platform polish
+
+### Testing Protocol
+1. Test mobile functionality first
+2. Verify desktop enhancement doesn't break mobile
+3. Cross-platform visual verification
+4. Performance testing on both platforms
+
+### Git Workflow
+- **`git add -A && git commit -m "Phase X: Description" && git push`**
+- **Commit AND push working code before debugging sessions**
+- **Always push to remote repository for backup**
+- Create tags for major milestones
+- Track progress through commit history
+
+## 🎮 Game-Specific Guidelines
+
+### Character Animation (Puffy Sprite)
+- 4x4 sprite sheet with 16 frames total
+- Display size: 48x48 pixels
+- Collision hitbox: 32x32 pixels (centered)
+- Touch-optimized animation timing
+
+### Level Construction
+- Block-based platform system using 24x24px blocks
+- Responsive scaling for different screen sizes
+- Kitchen-themed graphics and styling
+- Collision detection optimized for mobile performance
+
+### Game States
+- Mobile-friendly start screen with large touch targets
+- Pause functionality accessible on mobile and desktop
+- Score/lives display optimized for small screens
+- Game over screen with touch-friendly restart options
+
+## 🎯 Success Criteria
+
+### Visual Requirements
+- Game renders correctly on mobile (320px-428px) and desktop (1024px+)
+- Virtual D-pad functional and responsive
+- Character animations smooth at 60 FPS
+- UI elements readable on all screen sizes
+
+### Functional Requirements
+- Complete gameplay on mobile touch
+- Enhanced desktop experience with keyboard
+- Cross-platform state persistence
+- Consistent collision detection across platforms
+
+### Performance Requirements
+- 60 FPS maintained during full gameplay
+- Touch response <50ms on mobile
+- Game loads within 3 seconds
+- Memory usage remains stable
+
+This rule ensures Hop Hop Puff maintains mobile-first development with seamless desktop enhancement throughout the entire development cycle.

@@ -151,6 +151,42 @@ pwa-test:
 	@echo ""
 	@echo "Note: PWA manifest will be created in Phase 6"
 
+# Puffacles game-specific testing
+puffacles-test:
+	@echo "🎮 Opening Puffacles platformer game..."
+	@open http://localhost:8000/puffacles.html || xdg-open http://localhost:8000/puffacles.html || echo "Navigate to: http://localhost:8000/puffacles.html"
+
+# Camera following test
+camera-test:
+	@echo "📹 Testing camera following mechanics..."
+	@open http://localhost:8000/camera_test.html || xdg-open http://localhost:8000/camera_test.html || echo "Navigate to: http://localhost:8000/camera_test.html"
+
+# Obstacle collision test
+obstacle-test:
+	@echo "🧱 Testing obstacle collision detection..."
+	@open http://localhost:8000/obstacle_test.html || xdg-open http://localhost:8000/obstacle_test.html || echo "Navigate to: http://localhost:8000/obstacle_test.html"
+
+# Health system test
+health-test:
+	@echo "❤️ Testing 9-life health system..."
+	@open http://localhost:8000/health_test.html || xdg-open http://localhost:8000/health_test.html || echo "Navigate to: http://localhost:8000/health_test.html"
+
+# Git workflow helpers for Puffacles development
+git-phase:
+	@git add -A
+	@git status
+	@echo "Ready to commit phase completion. Use: git commit -m 'Phase X: Description' && git push"
+
+git-checkpoint:
+	@git add -A
+	@git commit -m "Checkpoint: Working Puffacles functionality before next feature" && git push
+	@echo "✅ Checkpoint committed and pushed to remote"
+
+git-puffacles:
+	@git add -A
+	@git commit -m "Puffacles: $(MSG)" && git push
+	@echo "✅ Puffacles development committed and pushed"
+
 # Development helpers
 setup:
 	@echo "🛠️  Setting up Hop Hop Puff development environment..."

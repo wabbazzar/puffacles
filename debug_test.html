@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Debug Test - Canvas Joystick</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: monospace;
+            touch-action: none;
+        }
+        
+        #status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 200;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border: 1px solid #00ffff;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <div>Canvas Joystick Test</div>
+        <div>Touch/Click area to test</div>
+        <div id="joystick-status">Joystick: Not active</div>
+        <div id="position-status">Position: (0, 0)</div>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <script>
+        console.log('🐛 Debug Test Started');
+        
+        // Vector2 class
+        class Vector2 {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+            add(vector) {
+                return new Vector2(this.x + vector.x, this.y + vector.y);
+            }
+            sub(vector) {
+                return new Vector2(this.x - vector.x, this.y - vector.y);
+            }
+            mul(n) {
+                return new Vector2(this.x * n, this.y * n);
+            }
+            div(n) {
+                return new Vector2(this.x / n, this.y / n);
+            }
+            mag() {
+                return Math.sqrt(this.x ** 2 + this.y ** 2);
+            }
+            normalize() {
+                return this.mag() === 0 ? new Vector2(0, 0) : this.div(this.mag());
+            }
+        }
+        
+        // Test Joystick
+        class TestJoystick {
+            constructor(x, y, radius, handleRadius) {
+                this.pos = new Vector2(x, y);
+                this.origin = new Vector2(x, y);
+                this.radius = radius;
+                this.handleRadius = handleRadius;
+                this.handleFriction = 0.25;
+                this.ondrag = false;
+                this.touchPos = new Vector2(0, 0);
+                this.listener();
+            }
+
+            listener() {
+                // Touch Events
+                addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    this.touchPos = new Vector2(e.touches[0].pageX, e.touches[0].pageY);
+                    if (this.touchPos.sub(this.origin).mag() <= this.radius) {
+                        this.ondrag = true;
+                        document.getElementById('joystick-status').textContent = 'Joystick: ACTIVE (touch)';
+                        console.log('🟢 Touch start - joystick active');
+                    }
+                }, { passive: false });
+
+                addEventListener('touchend', e => {
+                    e.preventDefault();
+                    this.ondrag = false;
+                    document.getElementById('joystick-status').textContent = 'Joystick: Not active';
+                    console.log('🔴 Touch end - joystick inactive');
+                }, { passive: false });
+
+                addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    this.touchPos = new Vector2(e.touches[0].pageX, e.touches[0].pageY);
+                    if (this.ondrag) {
+                        const diff = this.touchPos.sub(this.origin);
+                        document.getElementById('position-status').textContent = 
+                            `Position: (${diff.x.toFixed(1)}, ${diff.y.toFixed(1)})`;
+                    }
+                }, { passive: false });
+
+                // Mouse Events
+                addEventListener('mousedown', e => {
+                    this.touchPos = new Vector2(e.pageX, e.pageY);
+                    if (this.touchPos.sub(this.origin).mag() <= this.radius) {
+                        this.ondrag = true;
+                        document.getElementById('joystick-status').textContent = 'Joystick: ACTIVE (mouse)';
+                        console.log('🟢 Mouse down - joystick active');
+                    }
+                });
+
+                addEventListener('mouseup', () => {
+                    this.ondrag = false;
+                    document.getElementById('joystick-status').textContent = 'Joystick: Not active';
+                    console.log('🔴 Mouse up - joystick inactive');
+                });
+
+                addEventListener('mousemove', e => {
+                    this.touchPos = new Vector2(e.pageX, e.pageY);
+                    if (this.ondrag) {
+                        const diff = this.touchPos.sub(this.origin);
+                        document.getElementById('position-status').textContent = 
+                            `Position: (${diff.x.toFixed(1)}, ${diff.y.toFixed(1)})`;
+                    }
+                });
+            }
+
+            reposition() {
+                if (!this.ondrag) {
+                    this.pos = this.pos.add(this.origin.sub(this.pos).mul(this.handleFriction));
+                } else {
+                    const diff = this.touchPos.sub(this.origin);
+                    const maxDist = Math.min(diff.mag(), this.radius);
+                    this.pos = this.origin.add(diff.normalize().mul(maxDist));
+                }
+            }
+
+            draw(context) {
+                // Draw joystick base (cyan with glow)
+                context.shadowColor = '#00ffff';
+                context.shadowBlur = 20;
+                context.beginPath();
+                context.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                context.arc(this.origin.x, this.origin.y, this.radius, 0, Math.PI * 2);
+                context.fill();
+                context.closePath();
+
+                // Draw joystick border
+                context.shadowBlur = 0;
+                context.beginPath();
+                context.strokeStyle = '#00ffff';
+                context.lineWidth = 3;
+                context.arc(this.origin.x, this.origin.y, this.radius, 0, Math.PI * 2);
+                context.stroke();
+
+                // Draw joystick handle (white)
+                context.shadowColor = '#ffffff';
+                context.shadowBlur = 10;
+                context.beginPath();
+                context.fillStyle = '#ffffff';
+                context.arc(this.pos.x, this.pos.y, this.handleRadius, 0, Math.PI * 2);
+                context.fill();
+                context.closePath();
+                context.shadowBlur = 0;
+            }
+
+            update(context) {
+                this.reposition();
+                this.draw(context);
+            }
+        }
+        
+        // Initialize
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Create joystick
+        const joystick = new TestJoystick(100, window.innerHeight - 100, 60, 25);
+        
+        // Render loop
+        function render() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            joystick.update(context);
+            requestAnimationFrame(render);
+        }
+        
+        render();
+        
+        console.log('✅ Debug Test Ready - Try touching or clicking near bottom-left corner');
+    </script>
+</body>
+</html> 

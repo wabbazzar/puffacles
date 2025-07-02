@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 Physics Debug Test</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #000; color: #0f0; font-family: monospace; }
+        #game { width: 800px; height: 600px; margin: 20px auto; border: 2px solid #0f0; }
+        .debug { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🔬 PHYSICS DEBUG TEST</h1>
+    <p>Press SPACE to test gravity cancellation. Press UP arrow to test upward velocity.</p>
+    
+    <div id="game"></div>
+    
+    <div class="debug">
+        <h3>Physics State</h3>
+        <div>Gravity: <span id="gravity">300</span></div>
+        <div>Velocity: <span id="velocity">0, 0</span></div>
+        <div>Position: <span id="position">0, 0</span></div>
+        <div>Ready: <span id="ready">false</span></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="game/sprites/PuffySprite.js"></script>
+    
+    <script>
+        class PhysicsTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'PhysicsTestScene' });
+                this.puffy = null;
+                this.testResults = [];
+            }
+            
+            create() {
+                console.log('🔬 Starting physics test...');
+                
+                // Create simple ground
+                const ground = this.add.rectangle(400, 550, 800, 20, 0x00ff00);
+                this.physics.add.existing(ground, true);
+                
+                // Create Puffy
+                this.puffy = new PuffySprite(this);
+                
+                // Wait for Puffy to be ready, then start testing
+                this.time.delayedCall(3000, () => {
+                    this.startPhysicsTests();
+                });
+                
+                // Manual controls for testing
+                this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+                this.upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+                
+                this.add.text(400, 50, 'PHYSICS ISOLATION TEST', { 
+                    fontSize: '24px', color: '#00ff00', align: 'center' 
+                }).setOrigin(0.5);
+                
+                this.add.text(400, 80, 'SPACE = Cancel Gravity | UP = Set Upward Velocity', { 
+                    fontSize: '16px', color: '#00ff00', align: 'center' 
+                }).setOrigin(0.5);
+                
+                // Start debug updates
+                this.startDebugUpdates();
+            }
+            
+            startPhysicsTests() {
+                if (!this.puffy || !this.puffy.isReady) {
+                    console.log('❌ Puffy not ready for physics tests');
+                    this.time.delayedCall(1000, () => this.startPhysicsTests());
+                    return;
+                }
+                
+                console.log('✅ Puffy ready, starting automated physics tests...');
+                
+                // Position Puffy
+                this.puffy.sprite.setPosition(400, 400);
+                
+                // Test 1: Can we cancel gravity?
+                this.time.delayedCall(1000, () => this.testGravityCancellation());
+                
+                // Test 2: Can we set upward velocity?
+                this.time.delayedCall(3000, () => this.testUpwardVelocity());
+                
+                // Test 3: Can we maintain both?
+                this.time.delayedCall(5000, () => this.testCombinedClimbing());
+            }
+            
+            testGravityCancellation() {
+                console.log('🧪 TEST 1: Gravity Cancellation');
+                const beforeGrav = this.puffy.body.gravity.y;
+                console.log(`  Before: gravity = ${beforeGrav}`);
+                
+                this.puffy.body.setGravityY(-300);
+                
+                const afterGrav = this.puffy.body.gravity.y;
+                console.log(`  After: gravity = ${afterGrav}`);
+                console.log(`  Success: ${afterGrav === -300 ? '✅' : '❌'}`);
+                
+                this.testResults.push({
+                    test: 'Gravity Cancellation',
+                    success: afterGrav === -300,
+                    before: beforeGrav,
+                    after: afterGrav
+                });
+            }
+            
+            testUpwardVelocity() {
+                console.log('🧪 TEST 2: Upward Velocity');
+                const beforeVel = this.puffy.body.velocity.y;
+                console.log(`  Before: velocity.y = ${beforeVel}`);
+                
+                this.puffy.body.setVelocityY(-100);
+                
+                // Check immediately and after a delay
+                const afterVel = this.puffy.body.velocity.y;
+                console.log(`  Immediately after: velocity.y = ${afterVel}`);
+                
+                setTimeout(() => {
+                    const delayedVel = this.puffy.body.velocity.y;
+                    console.log(`  After 100ms: velocity.y = ${delayedVel}`);
+                    
+                    this.testResults.push({
+                        test: 'Upward Velocity',
+                        success: afterVel === -100,
+                        immediate: afterVel,
+                        delayed: delayedVel
+                    });
+                }, 100);
+            }
+            
+            testCombinedClimbing() {
+                console.log('🧪 TEST 3: Combined Climbing Physics');
+                
+                // Apply both gravity cancellation and upward velocity
+                console.log('  Setting gravity to -300...');
+                this.puffy.body.setGravityY(-300);
+                
+                console.log('  Setting velocity to -100...');
+                this.puffy.body.setVelocityY(-100);
+                
+                // Monitor for 2 seconds
+                let checks = 0;
+                const monitor = setInterval(() => {
+                    checks++;
+                    const grav = this.puffy.body.gravity.y;
+                    const vel = this.puffy.body.velocity.y;
+                    const pos = this.puffy.sprite.y;
+                    
+                    console.log(`  Check ${checks}: grav=${grav}, vel=${vel}, pos=${Math.round(pos)}`);
+                    
+                    if (checks >= 10) {
+                        clearInterval(monitor);
+                        this.reportTestResults();
+                    }
+                }, 200);
+            }
+            
+            reportTestResults() {
+                console.log('📊 PHYSICS TEST RESULTS:');
+                this.testResults.forEach((result, i) => {
+                    console.log(`  ${i+1}. ${result.test}: ${result.success ? '✅ PASS' : '❌ FAIL'}`);
+                    console.log(`     Details:`, result);
+                });
+                
+                // Determine the root cause
+                const gravityWorks = this.testResults.find(r => r.test === 'Gravity Cancellation')?.success;
+                const velocityWorks = this.testResults.find(r => r.test === 'Upward Velocity')?.success;
+                
+                console.log('🎯 ROOT CAUSE ANALYSIS:');
+                if (!gravityWorks) {
+                    console.log('❌ ISSUE: Gravity cancellation fails - setGravityY() not working');
+                } else if (!velocityWorks) {
+                    console.log('❌ ISSUE: Velocity setting fails - setVelocityY() not working');
+                } else {
+                    console.log('⚠️  ISSUE: Individual operations work, but something overrides them in combination');
+                }
+            }
+            
+            update() {
+                if (!this.puffy || !this.puffy.isReady) return;
+                
+                // Manual test controls
+                if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+                    console.log('🔧 Manual gravity cancellation test');
+                    this.puffy.body.setGravityY(-300);
+                }
+                
+                if (Phaser.Input.Keyboard.JustDown(this.upKey)) {
+                    console.log('🔧 Manual upward velocity test');
+                    this.puffy.body.setVelocityY(-100);
+                }
+            }
+            
+            startDebugUpdates() {
+                setInterval(() => {
+                    if (this.puffy && this.puffy.isReady && this.puffy.body) {
+                        document.getElementById('gravity').textContent = this.puffy.body.gravity.y;
+                        document.getElementById('velocity').textContent = 
+                            `${Math.round(this.puffy.body.velocity.x)}, ${Math.round(this.puffy.body.velocity.y)}`;
+                        document.getElementById('position').textContent = 
+                            `${Math.round(this.puffy.sprite.x)}, ${Math.round(this.puffy.sprite.y)}`;
+                        document.getElementById('ready').textContent = this.puffy.isReady;
+                    }
+                }, 100);
+            }
+        }
+        
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            backgroundColor: '#000080',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 300 },
+                    debug: true
+                }
+            },
+            scene: [PhysicsTestScene]
+        };
+        
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html> 

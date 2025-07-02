@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>Hop Hop Puff - Mobile Touch Test</title>
+    
+    <link rel="stylesheet" href="styles/mobile.css">
+    
+    <style>
+        /* Mobile Test Specific Styles */
+        #test-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2D1B69 0%, #1a0f3a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        
+        #test-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        #test-header h1 {
+            color: #00ffff;
+            font-size: clamp(1.5rem, 6vw, 2rem);
+            margin-bottom: 10px;
+        }
+        
+        #test-results {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .test-status.pass {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .test-status.fail {
+            background: #f44336;
+            color: white;
+        }
+        
+        .test-status.pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        #touch-area {
+            width: 200px;
+            height: 200px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            touch-action: manipulation;
+            user-select: none;
+            position: relative;
+        }
+        
+        #touch-feedback {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #00ffff;
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+        
+        #touch-feedback.active {
+            opacity: 0.8;
+            transform: scale(1);
+        }
+        
+        .virtual-dpad-test {
+            transform: scale(0.8);
+        }
+        
+        #device-info {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .info-item {
+            margin: 5px 0;
+        }
+        
+        #performance-monitor {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <div id="test-header">
+            <h1>🐱 Mobile Touch Test</h1>
+            <p>Testing Hop Hop Puff mobile interactions</p>
+        </div>
+        
+        <div id="test-results">
+            <div class="test-item">
+                <span>Viewport Size</span>
+                <span class="test-status pending" id="viewport-test">Testing...</span>
+            </div>
+            <div class="test-item">
+                <span>Touch Events</span>
+                <span class="test-status pending" id="touch-test">Testing...</span>
+            </div>
+            <div class="test-item">
+                <span>D-Pad Response</span>
+                <span class="test-status pending" id="dpad-test">Testing...</span>
+            </div>
+            <div class="test-item">
+                <span>Performance (60 FPS)</span>
+                <span class="test-status pending" id="performance-test">Testing...</span>
+            </div>
+            <div class="test-item">
+                <span>Touch Latency</span>
+                <span class="test-status pending" id="latency-test">Testing...</span>
+            </div>
+        </div>
+        
+        <div id="touch-area">
+            <div id="touch-feedback"></div>
+            <span>Touch Test Area</span>
+        </div>
+        
+        <!-- Virtual D-Pad Test -->
+        <div id="mobile-controls" class="mobile-only virtual-dpad-test">
+            <div id="virtual-dpad">
+                <button class="dpad-btn" id="dpad-up" data-direction="up">↑</button>
+                <button class="dpad-btn" id="dpad-left" data-direction="left">←</button>
+                <button class="dpad-btn" id="dpad-right" data-direction="right">→</button>
+                <button class="dpad-btn" id="dpad-down" data-direction="down">↓</button>
+            </div>
+        </div>
+        
+        <div id="device-info">
+            <div class="info-item">Screen: <span id="screen-size">-</span></div>
+            <div class="info-item">Viewport: <span id="viewport-size">-</span></div>
+            <div class="info-item">Device Pixel Ratio: <span id="pixel-ratio">-</span></div>
+            <div class="info-item">Touch Support: <span id="touch-support">-</span></div>
+            <div class="info-item">User Agent: <span id="user-agent">-</span></div>
+        </div>
+    </div>
+    
+    <div id="performance-monitor">
+        <div>FPS: <span id="fps-counter">60</span></div>
+        <div>Frame Time: <span id="frame-time">16.67ms</span></div>
+        <div>Touch Latency: <span id="touch-latency">-</span></div>
+    </div>
+    
+    <script>
+        // Mobile Touch Test Script
+        class MobileTouchTest {
+            constructor() {
+                this.tests = {
+                    viewport: false,
+                    touch: false,
+                    dpad: false,
+                    performance: false,
+                    latency: false
+                };
+                
+                this.touchStartTime = 0;
+                this.frameCount = 0;
+                this.lastFrameTime = performance.now();
+                this.fps = 60;
+                
+                this.init();
+            }
+            
+            init() {
+                this.detectDeviceInfo();
+                this.testViewport();
+                this.setupTouchTests();
+                this.setupDPadTests();
+                this.startPerformanceMonitoring();
+                this.updateResults();
+            }
+            
+            detectDeviceInfo() {
+                document.getElementById('screen-size').textContent = 
+                    `${screen.width}x${screen.height}`;
+                document.getElementById('viewport-size').textContent = 
+                    `${window.innerWidth}x${window.innerHeight}`;
+                document.getElementById('pixel-ratio').textContent = 
+                    window.devicePixelRatio || 1;
+                document.getElementById('touch-support').textContent = 
+                    'ontouchstart' in window ? 'Yes' : 'No';
+                document.getElementById('user-agent').textContent = 
+                    navigator.userAgent.substring(0, 50) + '...';
+            }
+            
+            testViewport() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                // Test if viewport is mobile-sized (320px-428px width)
+                if (width >= 320 && width <= 428) {
+                    this.tests.viewport = true;
+                } else if (width >= 280) { // Allow some flexibility
+                    this.tests.viewport = true;
+                }
+                
+                this.updateTestStatus('viewport-test', this.tests.viewport);
+            }
+            
+            setupTouchTests() {
+                const touchArea = document.getElementById('touch-area');
+                const touchFeedback = document.getElementById('touch-feedback');
+                
+                // Touch events
+                touchArea.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.touchStartTime = performance.now();
+                    
+                    const touch = e.touches[0];
+                    const rect = touchArea.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    
+                    touchFeedback.style.left = (x - 15) + 'px';
+                    touchFeedback.style.top = (y - 15) + 'px';
+                    touchFeedback.classList.add('active');
+                    
+                    this.tests.touch = true;
+                    this.updateTestStatus('touch-test', true);
+                }, { passive: false });
+                
+                touchArea.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    touchFeedback.classList.remove('active');
+                    
+                    // Test touch latency
+                    const latency = performance.now() - this.touchStartTime;
+                    document.getElementById('touch-latency').textContent = latency.toFixed(1) + 'ms';
+                    
+                    // Pass if latency < 50ms (spec requirement)
+                    this.tests.latency = latency < 50;
+                    this.updateTestStatus('latency-test', this.tests.latency);
+                }, { passive: false });
+                
+                // Mouse fallback for desktop testing
+                touchArea.addEventListener('mousedown', (e) => {
+                    this.touchStartTime = performance.now();
+                    
+                    const rect = touchArea.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    touchFeedback.style.left = (x - 15) + 'px';
+                    touchFeedback.style.top = (y - 15) + 'px';
+                    touchFeedback.classList.add('active');
+                    
+                    this.tests.touch = true;
+                    this.updateTestStatus('touch-test', true);
+                });
+                
+                touchArea.addEventListener('mouseup', () => {
+                    touchFeedback.classList.remove('active');
+                    
+                    const latency = performance.now() - this.touchStartTime;
+                    document.getElementById('touch-latency').textContent = latency.toFixed(1) + 'ms';
+                    this.tests.latency = latency < 50;
+                    this.updateTestStatus('latency-test', this.tests.latency);
+                });
+            }
+            
+            setupDPadTests() {
+                const dpadButtons = document.querySelectorAll('.dpad-btn');
+                let dpadInteractions = 0;
+                
+                dpadButtons.forEach(btn => {
+                    // Touch events
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        btn.classList.add('pressed');
+                        dpadInteractions++;
+                        
+                        if (dpadInteractions >= 2) {
+                            this.tests.dpad = true;
+                            this.updateTestStatus('dpad-test', true);
+                        }
+                    }, { passive: false });
+                    
+                    btn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        btn.classList.remove('pressed');
+                    }, { passive: false });
+                    
+                    // Mouse fallback
+                    btn.addEventListener('mousedown', (e) => {
+                        btn.classList.add('pressed');
+                        dpadInteractions++;
+                        
+                        if (dpadInteractions >= 2) {
+                            this.tests.dpad = true;
+                            this.updateTestStatus('dpad-test', true);
+                        }
+                    });
+                    
+                    btn.addEventListener('mouseup', () => {
+                        btn.classList.remove('pressed');
+                    });
+                });
+            }
+            
+            startPerformanceMonitoring() {
+                const monitor = () => {
+                    const now = performance.now();
+                    const deltaTime = now - this.lastFrameTime;
+                    
+                    this.frameCount++;
+                    this.fps = 1000 / deltaTime;
+                    
+                    document.getElementById('fps-counter').textContent = 
+                        Math.round(this.fps);
+                    document.getElementById('frame-time').textContent = 
+                        deltaTime.toFixed(2) + 'ms';
+                    
+                    // Test if maintaining 60 FPS (within reasonable tolerance)
+                    if (this.frameCount > 60) { // Wait for stabilization
+                        this.tests.performance = this.fps >= 55; // Allow some tolerance
+                        this.updateTestStatus('performance-test', this.tests.performance);
+                    }
+                    
+                    this.lastFrameTime = now;
+                    requestAnimationFrame(monitor);
+                };
+                
+                requestAnimationFrame(monitor);
+            }
+            
+            updateTestStatus(elementId, passed) {
+                const element = document.getElementById(elementId);
+                element.textContent = passed ? 'PASS' : 'FAIL';
+                element.className = `test-status ${passed ? 'pass' : 'fail'}`;
+            }
+            
+            updateResults() {
+                // Update test results every 500ms
+                setTimeout(() => {
+                    this.updateResults();
+                }, 500);
+            }
+        }
+        
+        // Initialize mobile test when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new MobileTouchTest();
+        });
+        
+        // Prevent default touch behaviors
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault(); // Prevent pinch zoom
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html> 

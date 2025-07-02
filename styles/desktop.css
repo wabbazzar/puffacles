@@ -1,0 +1,577 @@
+/* Desktop Enhancement CSS for Hop Hop Puff */
+/* Applied on screens 768px+ to match HTML media query */
+
+/* Desktop Layout Enhancements */
+@media (min-width: 768px) {
+    
+    /* Hide mobile-specific elements */
+    .mobile-header {
+        display: none;
+    }
+    
+    .controls-overlay {
+        display: none; /* Hide canvas joystick on desktop */
+    }
+    
+    /* === DESKTOP UI === */
+    .desktop-ui {
+        display: block;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 300px;
+        z-index: 100;
+    }
+    
+    .ui-panel {
+        background: rgba(0, 0, 0, 0.9);
+        border: 2px solid var(--primary-color);
+        border-radius: 10px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+    }
+    
+    .ui-panel h3 {
+        margin: 0 0 15px 0;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        text-align: center;
+        text-shadow: 0 0 10px var(--primary-color);
+    }
+    
+    .control-group {
+        margin-bottom: 15px;
+    }
+    
+    .control-group h4 {
+        margin: 0 0 8px 0;
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+    
+    .control-group p {
+        margin: 5px 0;
+        font-size: 0.9rem;
+        color: #ccc;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    kbd {
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 3px;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+        color: #fff;
+        display: inline-block;
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        font-weight: bold;
+        padding: 2px 6px;
+        white-space: nowrap;
+        min-width: 20px;
+        text-align: center;
+    }
+    
+    /* === GAME CONTAINER ADJUSTMENTS === */
+    .game-container {
+        /* Give more space for the game on desktop */
+        width: 100%;
+        height: 100vh;
+    }
+    
+    /* === ENHANCED VISUAL EFFECTS === */
+    .ui-panel {
+        transition: all 0.3s ease;
+    }
+    
+    .ui-panel:hover {
+        box-shadow: 0 0 40px rgba(0, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+    
+    /* === UTILITY CLASSES === */
+    .mobile-only {
+        display: none;
+    }
+    
+    .desktop-only {
+        display: block;
+    }
+    
+    /* === LARGE DESKTOP ENHANCEMENTS === */
+    @media (min-width: 1200px) {
+        
+        .ui-panel {
+            width: 350px;
+            padding: 25px;
+        }
+        
+        .ui-panel h3 {
+            font-size: 1.4rem;
+        }
+        
+        .control-group h4 {
+            font-size: 1.1rem;
+        }
+        
+        .control-group p {
+            font-size: 1rem;
+        }
+        
+        kbd {
+            font-size: 0.9rem;
+            padding: 3px 8px;
+        }
+    }
+    
+    /* === FULLSCREEN DESKTOP === */
+    @media (min-width: 1600px) {
+        
+        .desktop-ui {
+            top: 30px;
+            right: 30px;
+        }
+        
+        .ui-panel {
+            width: 400px;
+            padding: 30px;
+        }
+        
+        .ui-panel h3 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h4 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .control-group p {
+            font-size: 1.1rem;
+            margin: 8px 0;
+        }
+        
+        kbd {
+            font-size: 1rem;
+            padding: 4px 10px;
+        }
+    }
+    
+    /* === DESKTOP ACCESSIBILITY === */
+    @media (min-width: 768px) {
+        
+        /* Enhanced focus indicators for desktop */
+        .ui-panel:focus-within {
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.7);
+        }
+        
+        /* Keyboard navigation support */
+        *:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+        
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            .ui-panel {
+                background: #000;
+                border-color: #fff;
+            }
+            
+            kbd {
+                background: #fff;
+                color: #000;
+                border-color: #000;
+            }
+        }
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .ui-panel,
+            .ui-panel:hover {
+                transition: none;
+                transform: none;
+            }
+        }
+    }
+    
+    /* === DESKTOP LAYOUT === */
+    .game-container {
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        height: 100vh; /* Use regular vh on desktop */
+        gap: 20px;
+    }
+    
+    /* Hide mobile header on desktop */
+    .game-header {
+        display: none;
+    }
+    
+    /* Desktop game container */
+    #game-container {
+        width: 640px;  /* 2x mobile width for better desktop experience */
+        height: 480px; /* Maintain aspect ratio */
+        flex: none;
+        padding: 0;
+        background: radial-gradient(ellipse at center, #2D1B69 0%, #1a0f3a 70%, #0d0520 100%);
+    }
+    
+    /* Show desktop UI */
+    #game-ui {
+        display: flex !important;
+        flex-direction: column;
+        gap: 20px;
+        min-width: 200px;
+        pointer-events: auto;
+    }
+    
+    #ui-top-bar {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+        background: rgba(0, 255, 255, 0.1);
+        border-radius: 15px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Desktop UI text sizing */
+    #lives-display-desktop,
+    #score-display-desktop,
+    #timer-display-desktop {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    #lives-display-desktop {
+        color: #ff6b6b;
+        text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+    }
+    
+    #score-display-desktop {
+        color: #00ff00;
+        text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+    
+    #timer-display-desktop {
+        color: #ffff00;
+        text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+    }
+    
+    /* Desktop Pause Button */
+    #pause-btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 25px;
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 255, 255, 0.1));
+        border: 2px solid #00ffff;
+        color: #fff;
+        cursor: pointer;
+        backdrop-filter: blur(5px);
+        transition: all 0.2s ease;
+        margin-top: 10px;
+    }
+    
+    #pause-btn:hover {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.3));
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+        transform: translateY(-2px);
+    }
+    
+    #pause-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    }
+    
+    /* Keyboard Controls Info */
+    .controls-info {
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 20px;
+        backdrop-filter: blur(5px);
+    }
+    
+    .controls-info h4 {
+        color: #00ffff;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        margin-bottom: 10px;
+        font-size: 16px;
+        text-align: center;
+    }
+    
+    .controls-info p {
+        color: #ffffff;
+        font-size: 14px;
+        margin: 8px 0;
+        opacity: 0.9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .controls-info .key {
+        color: #ffff00;
+        text-shadow: 0 0 5px rgba(255, 255, 0, 0.8);
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        min-width: 50px;
+        text-align: center;
+    }
+    
+    /* Enhanced Game Canvas */
+    canvas {
+        border-radius: 15px;
+        box-shadow: 
+            0 10px 40px rgba(0, 0, 0, 0.6),
+            0 0 0 2px rgba(0, 255, 255, 0.2),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        transition: box-shadow 0.3s ease;
+    }
+    
+    canvas:focus {
+        outline: none;
+        box-shadow: 
+            0 10px 40px rgba(0, 0, 0, 0.6),
+            0 0 0 3px rgba(0, 255, 255, 0.6),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Keyboard Shortcuts Overlay */
+    #keyboard-shortcuts {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        font-size: 0.9rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 200;
+    }
+    
+    #keyboard-shortcuts.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    #keyboard-shortcuts h3 {
+        color: #00ffff;
+        margin-bottom: 10px;
+        font-size: 1rem;
+    }
+    
+    .shortcut-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        color: #ccc;
+    }
+    
+    .shortcut-key {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        color: #00ffff;
+        font-weight: bold;
+        min-width: 60px;
+        text-align: center;
+    }
+    
+    /* Loading Screen Desktop Enhancement */
+    #loading-screen h1 {
+        font-size: 4rem;
+        text-shadow: 
+            0 0 20px #00ffff,
+            0 0 40px #00ffff,
+            0 0 60px #00ffff;
+    }
+    
+    #loading-screen p {
+        font-size: 1.5rem;
+    }
+    
+    .loading-spinner {
+        width: 80px;
+        height: 80px;
+        border-width: 6px;
+    }
+    
+    /* Game Over/Pause Modal Enhancements */
+    .modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, rgba(45, 27, 105, 0.95), rgba(26, 15, 58, 0.95));
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(0, 255, 255, 0.4);
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        z-index: 500;
+        min-width: 400px;
+    }
+    
+    .modal h2 {
+        color: #00ffff;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        text-shadow: 0 0 20px #00ffff;
+    }
+    
+    .modal p {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        color: #ccc;
+    }
+    
+    .modal-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+    }
+    
+    .modal-btn {
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        border: 2px solid #00ffff;
+        border-radius: 25px;
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 255, 0.1));
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    
+    .modal-btn:hover {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.4), rgba(0, 255, 255, 0.2));
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+        transform: translateY(-3px);
+    }
+    
+    .modal-btn:active {
+        transform: translateY(-1px);
+    }
+    
+    .modal-btn.primary {
+        background: linear-gradient(135deg, #00ffff, #0099cc);
+        color: #000;
+        font-weight: bold;
+    }
+    
+    .modal-btn.primary:hover {
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+    }
+    
+    /* Performance Stats (Debug Mode) */
+    #performance-stats {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: #00ff00;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 300;
+    }
+    
+    #performance-stats.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    /* Fullscreen Mode Enhancements */
+    .fullscreen #game-container {
+        padding: 0;
+    }
+    
+    .fullscreen #ui-top-bar {
+        border-radius: 0;
+    }
+    
+    /* Hover Effects for Interactive Elements */
+    .ui-btn:hover {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.3));
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        transform: translateY(-2px);
+    }
+    
+    /* Enhanced Focus Indicators */
+    button:focus,
+    canvas:focus {
+        outline: 3px solid rgba(0, 255, 255, 0.6);
+        outline-offset: 2px;
+    }
+    
+    /* Smooth Scrolling for Menus */
+    * {
+        scroll-behavior: smooth;
+    }
+    
+    /* Desktop Animations */
+    @keyframes glow {
+        0%, 100% { 
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+        }
+        50% { 
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+        }
+    }
+    
+    .glow-effect {
+        animation: glow 2s ease-in-out infinite;
+    }
+    
+    /* High DPI Display Optimizations */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        canvas {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+    }
+    
+    /* Dark Mode Support */
+    @media (prefers-color-scheme: dark) {
+        .modal {
+            background: linear-gradient(135deg, rgba(20, 10, 50, 0.98), rgba(10, 5, 25, 0.98));
+        }
+    }
+    
+    /* Print Styles (Hide Game) */
+    @media print {
+        * {
+            display: none !important;
+        }
+    }
+} 

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joystick Debug - Hop Hop Puff</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #2D1B69;
+            color: white;
+        }
+        
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+        }
+        
+        .status {
+            font-family: monospace;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        #test-output {
+            min-height: 200px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #0099cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Joystick Debug Page</h1>
+    
+    <div class="debug-section">
+        <h2>DOM Element Test</h2>
+        <button onclick="testElements()">Test Joystick Elements</button>
+        <button onclick="loadMainPage()">Load Main Page Elements</button>
+        <button onclick="clearOutput()">Clear Output</button>
+        
+        <div class="status" id="element-status">
+            Status: Ready for testing
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Test Output</h2>
+        <div id="test-output">Click "Test Joystick Elements" to start debugging...</div>
+    </div>
+    
+    <!-- This is where we'll load the joystick HTML -->
+    <div id="joystick-container"></div>
+    
+    <script>
+        let output = document.getElementById('test-output');
+        let status = document.getElementById('element-status');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function updateStatus(message) {
+            status.textContent = message;
+            log(`STATUS: ${message}`);
+        }
+        
+        function testElements() {
+            log('=== TESTING JOYSTICK ELEMENTS ===');
+            
+            // Test if elements exist in current page
+            const joystickBase = document.getElementById('joystick-base');
+            const joystickKnob = document.getElementById('joystick-knob');
+            const jumpBtn = document.getElementById('jump-btn');
+            
+            log(`joystick-base: ${joystickBase ? 'FOUND' : 'NOT FOUND'}`);
+            log(`joystick-knob: ${joystickKnob ? 'FOUND' : 'NOT FOUND'}`);
+            log(`jump-btn: ${jumpBtn ? 'FOUND' : 'NOT FOUND'}`);
+            
+            if (!joystickBase) {
+                log('ERROR: joystick-base element missing!');
+                updateStatus('❌ Joystick elements missing');
+                return;
+            }
+            
+            if (!joystickKnob) {
+                log('ERROR: joystick-knob element missing!');
+                updateStatus('❌ Joystick elements missing');
+                return;
+            }
+            
+            if (!jumpBtn) {
+                log('ERROR: jump-btn element missing!');
+                updateStatus('❌ Jump button missing');
+                return;
+            }
+            
+            // Test element properties
+            log(`joystick-base rect: ${JSON.stringify(joystickBase.getBoundingClientRect())}`);
+            log(`joystick-knob rect: ${JSON.stringify(joystickKnob.getBoundingClientRect())}`);
+            
+            updateStatus('✅ All elements found and accessible');
+            log('=== TEST COMPLETE ===');
+        }
+        
+        function loadMainPage() {
+            log('=== LOADING MAIN PAGE JOYSTICK HTML ===');
+            
+            // Load the joystick HTML from the main page
+            const joystickHTML = `
+                <div id="mobile-controls" style="position: relative; height: 200px; background: rgba(0,255,255,0.1); border: 1px solid #00ffff; border-radius: 8px; margin: 20px 0;">
+                    <div id="virtual-joystick" style="position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px;">
+                        <div id="joystick-base" style="position: absolute; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, rgba(0, 255, 255, 0.1) 70%, transparent 100%); border: 3px solid rgba(0, 255, 255, 0.5); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);"></div>
+                        <div id="joystick-knob" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle, rgba(0, 255, 255, 0.8) 0%, rgba(0, 255, 255, 0.6) 70%); border: 2px solid #00ffff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); top: 50%; left: 50%; transform: translate(-50%, -50%); cursor: pointer;"></div>
+                    </div>
+                    
+                    <div id="jump-button-container" style="position: absolute; bottom: 20px; right: 20px;">
+                        <button id="jump-btn" style="width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 102, 0, 0.8) 0%, rgba(255, 102, 0, 0.6) 70%); border: 3px solid #ff6600; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer;">JUMP</button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('joystick-container').innerHTML = joystickHTML;
+            
+            log('Joystick HTML loaded into page');
+            updateStatus('📱 Joystick HTML loaded');
+            
+            // Wait a moment then test
+            setTimeout(() => {
+                testElements();
+            }, 100);
+        }
+        
+        function clearOutput() {
+            output.textContent = '';
+            updateStatus('Ready for testing');
+        }
+        
+        // Auto-test on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Debug page loaded');
+            updateStatus('🔍 Debug page ready');
+        });
+    </script>
+</body>
+</html> 

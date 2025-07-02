@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🪜 Simple Ladder Test</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #000; color: #0f0; font-family: monospace; }
+        #game { width: 800px; height: 600px; margin: 20px auto; border: 2px solid #0f0; }
+        .status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); padding: 15px; border: 1px solid #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🪜 SIMPLE LADDER CLIMBING TEST</h1>
+    <p>Press W to climb up, S to climb down. Goal: Reach the TOP GREEN ZONE.</p>
+    
+    <div id="game"></div>
+    
+    <div class="status">
+        <h3>Status</h3>
+        <div>Position: <span id="position">0, 0</span></div>
+        <div>On Ladder: <span id="on-ladder">false</span></div>
+        <div>Result: <span id="result">Testing...</span></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="game/sprites/PuffySprite.js"></script>
+    
+    <script>
+        class SimpleLadderTest extends Phaser.Scene {
+            constructor() {
+                super({ key: 'SimpleLadderTest' });
+                this.puffy = null;
+                this.isOnLadder = false;
+                this.topZone = null;
+                this.goalReached = false;
+            }
+            
+            create() {
+                console.log('🪜 Creating simple ladder test...');
+                
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                // Create ground
+                const ground = this.add.rectangle(width/2, height - 25, width, 50, 0x8b4513);
+                this.physics.add.existing(ground, true);
+                
+                // Create ONE TALL LADDER spanning ENTIRE height + 33% extension
+                const ladderX = width / 2;
+                const baseLadderBottom = height - 50;
+                const baseLadderTop = 10;
+                const baseLadderHeight = baseLadderBottom - baseLadderTop;
+                
+                // Extend by 33% in both directions
+                const extension = baseLadderHeight * 0.33;
+                const ladderBottom = baseLadderBottom + (extension / 2);
+                const ladderTop = baseLadderTop - (extension / 2);
+                const ladderHeight = ladderBottom - ladderTop;
+                const ladderCenterY = (ladderBottom + ladderTop) / 2;
+                
+                // Visual ladder
+                const visualLadder = this.add.rectangle(ladderX, ladderCenterY, 20, ladderHeight, 0xFFD700);
+                visualLadder.setStrokeStyle(4, 0xFFA500);
+                
+                // Ladder collision zone - THIN rectangle
+                this.ladderZone = this.physics.add.sprite(ladderX, ladderCenterY, null);
+                this.ladderZone.setVisible(false);
+                this.ladderZone.body.setSize(30, ladderHeight);
+                this.ladderZone.setImmovable(true);
+                
+                // TOP SUCCESS ZONE - large green area at very top
+                this.topZone = this.add.rectangle(width/2, 30, width, 60, 0x00FF00);
+                this.topZone.setAlpha(0.7);
+                this.physics.add.existing(this.topZone, true);
+                
+                // Success text
+                this.add.text(width/2, 30, 'SUCCESS ZONE', {
+                    fontSize: '24px',
+                    color: '#000000',
+                    align: 'center',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+                
+                // Create Puffy
+                this.puffy = new PuffySprite(this);
+                
+                // Wait for Puffy to be ready
+                this.time.delayedCall(2000, () => {
+                    if (this.puffy.isReady) {
+                        this.setupTest();
+                    } else {
+                        console.log('❌ Puffy not ready!');
+                    }
+                });
+                
+                // Manual controls
+                this.cursors = this.input.keyboard.addKeys('W,S,A,D');
+                
+                console.log(`🪜 Extended Ladder: x=${ladderX}, height=${ladderHeight} (+33%), top=${ladderTop}, bottom=${ladderBottom}`);
+            }
+            
+            setupTest() {
+                console.log('✅ Setting up test collisions...');
+                
+                // Position Puffy at bottom
+                this.puffy.sprite.setPosition(400, 500);
+                
+                // Platform collision
+                this.physics.add.collider(this.puffy.sprite, this.physics.world.staticBodies);
+                
+                // Ladder detection
+                this.physics.add.overlap(this.puffy.sprite, this.ladderZone, () => {
+                    if (!this.isOnLadder) {
+                        this.isOnLadder = true;
+                        console.log('🪜 ENTERED LADDER ZONE');
+                    }
+                });
+                
+                // Success zone detection
+                this.physics.add.overlap(this.puffy.sprite, this.topZone, () => {
+                    if (!this.goalReached) {
+                        this.goalReached = true;
+                        console.log('🎯 SUCCESS! Reached top zone!');
+                        document.getElementById('result').textContent = 'SUCCESS!';
+                        document.getElementById('result').style.color = '#00ff00';
+                    }
+                });
+                
+                console.log('✅ Test ready! Use W/S to climb ladder.');
+            }
+            
+            update() {
+                if (!this.puffy || !this.puffy.isReady) return;
+                
+                // Check ladder proximity - use BOTTOM of Puffy's body
+                const puffyBottomX = this.puffy.sprite.x;
+                const puffyBottomY = this.puffy.sprite.y + (this.puffy.sprite.displayHeight / 2);
+                
+                const distToLadder = Phaser.Math.Distance.Between(
+                    puffyBottomX, puffyBottomY,
+                    400, 300
+                );
+                
+                if (distToLadder < 25 && !this.isOnLadder) {
+                    this.isOnLadder = true;
+                    console.log('🪜 LADDER DETECTED via proximity');
+                } else if (distToLadder > 35 && this.isOnLadder) {
+                    this.isOnLadder = false;
+                    this.puffy.sprite.body.setGravityY(300);
+                    console.log('🪜 EXITED LADDER');
+                }
+                
+                // Handle input
+                if (this.cursors.W.isDown && this.isOnLadder) {
+                    // CLIMB UP with floating physics
+                    this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                    this.puffy.sprite.body.setVelocityY(-150);
+                    this.puffy.sprite.body.setVelocityX(0);
+                    this.puffy.playAnimation('walk_up');
+                    console.log(`🪜 CLIMBING UP: Y=${Math.round(this.puffy.sprite.y)}`);
+                    
+                } else if (this.cursors.S.isDown && this.isOnLadder) {
+                    // CLIMB DOWN
+                    this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                    this.puffy.sprite.body.setVelocityY(100);
+                    this.puffy.sprite.body.setVelocityX(0);
+                    this.puffy.playAnimation('walk_down');
+                    
+                } else if (this.isOnLadder) {
+                    // HOLD ON LADDER (floating)
+                    this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                    this.puffy.sprite.body.setVelocity(0, 0);
+                    this.puffy.playAnimation('idle_up');
+                    
+                } else {
+                    // NORMAL MOVEMENT
+                    if (this.cursors.A.isDown) {
+                        this.puffy.sprite.body.setVelocityX(-100);
+                        this.puffy.playAnimation('walk_left');
+                    } else if (this.cursors.D.isDown) {
+                        this.puffy.sprite.body.setVelocityX(100);
+                        this.puffy.playAnimation('walk_right');
+                    } else {
+                        this.puffy.sprite.body.setVelocityX(0);
+                    }
+                }
+                
+                // Update status display
+                this.updateStatus();
+            }
+            
+            updateStatus() {
+                if (this.puffy && this.puffy.sprite) {
+                    const pos = `(${Math.round(this.puffy.sprite.x)}, ${Math.round(this.puffy.sprite.y)})`;
+                    document.getElementById('position').textContent = pos;
+                    document.getElementById('on-ladder').textContent = this.isOnLadder;
+                    
+                    // Check if we're at the very top
+                    if (this.puffy.sprite.y < 60 && !this.goalReached) {
+                        console.log('🎯 Reached top area!');
+                    }
+                }
+            }
+        }
+        
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            backgroundColor: '#87CEEB',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 300 },
+                    debug: true
+                }
+            },
+            scene: [SimpleLadderTest]
+        };
+        
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html> 

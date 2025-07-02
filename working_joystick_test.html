@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: monospace;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        #debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+    <title>Working Joystick Test</title>
+</head>
+<body>
+    <div id="debug">
+        <div>Touch joystick to test</div>
+        <div id="status">Status: Ready</div>
+        <div id="coords">X: 0, Y: 0</div>
+        <div id="direction">Direction: Center</div>
+    </div>
+
+    <script>
+        // Vector2 class for position math
+        class Vector2 {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+            add(vector) {
+                return new Vector2(this.x + vector.x, this.y + vector.y);
+            }
+            sub(vector) {
+                return new Vector2(this.x - vector.x, this.y - vector.y);
+            }
+            mul(n) {
+                return new Vector2(this.x * n, this.y * n);
+            }
+            div(n) {
+                return new Vector2(this.x / n, this.y / n);
+            }
+            mag() {
+                return Math.sqrt(this.x ** 2 + this.y ** 2);
+            }
+            normalize() {
+                return this.mag() === 0 ? new Vector2(0, 0) : this.div(this.mag());
+            }
+        }
+
+        // Circle drawing function
+        function circle(context, pos, radius, color) {
+            context.beginPath();
+            context.fillStyle = color;
+            context.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+            context.fill();
+            context.closePath();
+        }
+
+        // Working Joystick class
+        class WorkingJoystick {
+            constructor(x, y, radius, handleRadius) {
+                this.pos = new Vector2(x, y);
+                this.origin = new Vector2(x, y);
+                this.radius = radius;
+                this.handleRadius = handleRadius;
+                this.handleFriction = 0.25;
+                this.ondrag = false;
+                this.touchPos = new Vector2(0, 0);
+                this.listener();
+            }
+
+            listener() {
+                // Touch Events
+                addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    this.touchPos = new Vector2(e.touches[0].pageX, e.touches[0].pageY);
+                    if (this.touchPos.sub(this.origin).mag() <= this.radius) {
+                        this.ondrag = true;
+                        this.showStatus('TOUCHED!');
+                        // Haptic feedback
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate(30);
+                        }
+                    }
+                }, { passive: false });
+
+                addEventListener('touchend', e => {
+                    e.preventDefault();
+                    this.ondrag = false;
+                    this.showStatus('Released');
+                }, { passive: false });
+
+                addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    this.touchPos = new Vector2(e.touches[0].pageX, e.touches[0].pageY);
+                }, { passive: false });
+
+                // Mouse Events for desktop
+                addEventListener('mousedown', e => {
+                    this.touchPos = new Vector2(e.pageX, e.pageY);
+                    if (this.touchPos.sub(this.origin).mag() <= this.radius) {
+                        this.ondrag = true;
+                        this.showStatus('CLICKED!');
+                    }
+                });
+
+                addEventListener('mouseup', () => {
+                    this.ondrag = false;
+                    this.showStatus('Released');
+                });
+
+                addEventListener('mousemove', e => {
+                    this.touchPos = new Vector2(e.pageX, e.pageY);
+                });
+            }
+
+            reposition() {
+                if (!this.ondrag) {
+                    this.pos = this.pos.add(this.origin.sub(this.pos).mul(this.handleFriction));
+                } else {
+                    const diff = this.touchPos.sub(this.origin);
+                    const maxDist = Math.min(diff.mag(), this.radius);
+                    this.pos = this.origin.add(diff.normalize().mul(maxDist));
+                }
+            }
+
+            draw(context) {
+                // Draw joystick base
+                circle(context, this.origin, this.radius, '#00ffff');
+                // Draw joystick handle
+                circle(context, this.pos, this.handleRadius, '#ffffff');
+                
+                // Draw border
+                context.beginPath();
+                context.strokeStyle = '#00ffff';
+                context.lineWidth = 3;
+                context.arc(this.origin.x, this.origin.y, this.radius, 0, Math.PI * 2);
+                context.stroke();
+            }
+
+            update(context) {
+                this.reposition();
+                this.draw(context);
+                this.updateDebug();
+            }
+
+            showStatus(message) {
+                document.getElementById('status').textContent = `Status: ${message}`;
+            }
+
+            updateDebug() {
+                const diff = this.pos.sub(this.origin);
+                const normalizedX = (diff.x / this.radius).toFixed(2);
+                const normalizedY = (diff.y / this.radius).toFixed(2);
+                
+                document.getElementById('coords').textContent = `X: ${normalizedX}, Y: ${normalizedY}`;
+                
+                let direction = 'Center';
+                if (Math.abs(parseFloat(normalizedX)) > 0.3 || Math.abs(parseFloat(normalizedY)) > 0.3) {
+                    if (Math.abs(parseFloat(normalizedX)) > Math.abs(parseFloat(normalizedY))) {
+                        direction = parseFloat(normalizedX) > 0 ? 'Right' : 'Left';
+                    } else {
+                        direction = parseFloat(normalizedY) > 0 ? 'Down' : 'Up';
+                    }
+                }
+                document.getElementById('direction').textContent = `Direction: ${direction}`;
+            }
+        }
+
+        // Initialize canvas and joystick
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        document.body.appendChild(canvas);
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Create joystick
+        const joystick = new WorkingJoystick(100, canvas.height - 100, 60, 30);
+
+        // Create jump button area
+        const jumpButton = {
+            x: canvas.width - 100,
+            y: canvas.height - 100,
+            radius: 40,
+            pressed: false
+        };
+
+        // Jump button event handling
+        function handleJumpEvents() {
+            addEventListener('touchstart', e => {
+                const touch = e.touches[0];
+                const dist = Math.sqrt((touch.pageX - jumpButton.x) ** 2 + (touch.pageY - jumpButton.y) ** 2);
+                if (dist <= jumpButton.radius) {
+                    jumpButton.pressed = true;
+                    document.getElementById('status').textContent = 'Status: JUMP!';
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(50);
+                    }
+                }
+            }, { passive: false });
+
+            addEventListener('touchend', () => {
+                jumpButton.pressed = false;
+            }, { passive: false });
+
+            addEventListener('mousedown', e => {
+                const dist = Math.sqrt((e.pageX - jumpButton.x) ** 2 + (e.pageY - jumpButton.y) ** 2);
+                if (dist <= jumpButton.radius) {
+                    jumpButton.pressed = true;
+                    document.getElementById('status').textContent = 'Status: JUMP!';
+                }
+            });
+
+            addEventListener('mouseup', () => {
+                jumpButton.pressed = false;
+            });
+        }
+        handleJumpEvents();
+
+        function drawJumpButton(context) {
+            const color = jumpButton.pressed ? '#ff6600' : '#ff9900';
+            circle(context, new Vector2(jumpButton.x, jumpButton.y), jumpButton.radius, color);
+            
+            // Draw border
+            context.beginPath();
+            context.strokeStyle = '#ff9900';
+            context.lineWidth = 3;
+            context.arc(jumpButton.x, jumpButton.y, jumpButton.radius, 0, Math.PI * 2);
+            context.stroke();
+            
+            // Draw text
+            context.fillStyle = 'white';
+            context.font = '16px monospace';
+            context.textAlign = 'center';
+            context.fillText('JUMP', jumpButton.x, jumpButton.y + 5);
+        }
+
+        // Main game loop
+        function gameLoop() {
+            // Clear canvas
+            context.fillStyle = '#111';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and draw joystick
+            joystick.update(context);
+            
+            // Draw jump button
+            drawJumpButton(context);
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html> 

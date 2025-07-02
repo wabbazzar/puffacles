@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>Hop Hop Puff - Puffy Sprite Test</title>
+    
+    <link rel="stylesheet" href="styles/mobile.css">
+    <link rel="stylesheet" href="styles/desktop.css" media="(min-width: 1024px)">
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="game/sprites/PuffySprite.js"></script>
+    
+    <style>
+        #sprite-test-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2D1B69 0%, #1a0f3a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        #sprite-info {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        .sprite-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .sprite-frame {
+            width: 64px;
+            height: 64px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            text-align: center;
+        }
+        
+        .animation-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .anim-btn {
+            padding: 10px 15px;
+            background: rgba(0, 255, 255, 0.3);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .anim-btn:hover {
+            background: rgba(0, 255, 255, 0.6);
+            transform: scale(1.05);
+        }
+        
+        .anim-btn.active {
+            background: #00ffff;
+            color: #000;
+            font-weight: bold;
+        }
+        
+        #performance-stats {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div id="sprite-test-container">
+        <h1 style="color: #00ffff; margin-bottom: 10px;">🐱 Puffy 4x4 Sprite Test</h1>
+        
+        <div id="sprite-info">
+            <h3>Sprite Sheet Analysis</h3>
+            <p>Testing all 16 frames from puffy_4_by_4.png</p>
+            <p><strong>Display Size:</strong> 48x48 pixels | <strong>Hitbox:</strong> 32x32 pixels</p>
+            <div id="frame-info">Loading sprite data...</div>
+        </div>
+        
+        <!-- Phaser game canvas -->
+        <div id="phaser-sprite-test" style="border: 2px solid #00ffff; border-radius: 10px; margin: 10px;"></div>
+        
+        <!-- Expected 4x4 grid layout -->
+        <div class="sprite-grid">
+            <div class="sprite-frame">Frame 0<br>Up Walk 1</div>
+            <div class="sprite-frame">Frame 1<br>Up Walk 2</div>
+            <div class="sprite-frame">Frame 2<br>Up Walk 3</div>
+            <div class="sprite-frame">Frame 3<br>Up Walk 4</div>
+            <div class="sprite-frame">Frame 4<br>Left Walk 1</div>
+            <div class="sprite-frame">Frame 5<br>Left Walk 2</div>
+            <div class="sprite-frame">Frame 6<br>Left Walk 3</div>
+            <div class="sprite-frame">Frame 7<br>Left Walk 4</div>
+            <div class="sprite-frame">Frame 8<br>Down Walk 1</div>
+            <div class="sprite-frame">Frame 9<br>Down Walk 2</div>
+            <div class="sprite-frame">Frame 10<br>Down Walk 3</div>
+            <div class="sprite-frame">Frame 11<br>Down Walk 4</div>
+            <div class="sprite-frame">Frame 12<br>Right Walk 1</div>
+            <div class="sprite-frame">Frame 13<br>Right Walk 2</div>
+            <div class="sprite-frame">Frame 14<br>Right Walk 3</div>
+            <div class="sprite-frame">Frame 15<br>Right Walk 4</div>
+        </div>
+        
+        <!-- Animation test controls -->
+        <div class="animation-controls">
+            <button class="anim-btn" id="test-walk-up">Walk Up (Frames 0-3)</button>
+            <button class="anim-btn" id="test-walk-left">Walk Left (Frames 4-7)</button>
+            <button class="anim-btn" id="test-walk-down">Walk Down (Frames 8-11)</button>
+            <button class="anim-btn" id="test-walk-right">Walk Right (Frames 12-15)</button>
+        </div>
+        
+        <div class="animation-controls">
+            <button class="anim-btn" id="test-idle-up">Idle Up</button>
+            <button class="anim-btn" id="test-idle-left">Idle Left</button>
+            <button class="anim-btn" id="test-idle-down">Idle Down</button>
+            <button class="anim-btn" id="test-idle-right">Idle Right</button>
+        </div>
+        
+        <div class="animation-controls">
+            <button class="anim-btn" id="cycle-all">🔄 Cycle All Animations</button>
+            <button class="anim-btn" id="show-hitbox">Show Hitbox</button>
+            <button class="anim-btn" id="test-speed">Test Speed Variations</button>
+        </div>
+        
+        <p style="margin-top: 20px; text-align: center; color: #ccc;">
+            This test verifies all 16 frames are properly detected and animated<br>
+            Expected: 4 rows × 4 columns = 16 unique animation frames
+        </p>
+    </div>
+    
+    <div id="performance-stats">
+        <div>FPS: <span id="fps-counter">60</span></div>
+        <div>Active Animation: <span id="current-anim">None</span></div>
+        <div>Frame Count: <span id="frame-count">0</span></div>
+    </div>
+    
+    <script>
+        class SpriteTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'SpriteTestScene' });
+                this.puffy = null;
+                this.frameCount = 0;
+                this.lastFrameTime = performance.now();
+                this.isShowingHitbox = false;
+            }
+            
+            preload() {
+                console.log('🎨 Sprite Test: Loading Puffy 4x4 sprite sheet...');
+                
+                // Use our PuffySprite system
+                this.puffy = new PuffySprite(this);
+                this.puffy.preload();
+            }
+            
+            create() {
+                console.log('🐱 Sprite Test: Creating test environment...');
+                
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                // Create Puffy sprite (it will auto-position itself)
+                this.puffy = new PuffySprite(this);
+                
+                // Create platform for standing
+                const platform = this.add.rectangle(width * 0.5, height * 0.7, 200, 20, 0x8b4513);
+                this.physics.add.existing(platform, true);
+                // Collision will be set up once Puffy sprite is ready
+                
+                // Set up animation controls
+                this.setupAnimationControls();
+                
+                // Start performance monitoring
+                this.startPerformanceMonitoring();
+                
+                // Update sprite info
+                this.updateSpriteInfo();
+                
+                console.log('✅ Sprite test environment ready!');
+            }
+            
+            setupAnimationControls() {
+                // Walk animations
+                document.getElementById('test-walk-up').addEventListener('click', () => {
+                    this.testAnimation('up', true);
+                });
+                
+                document.getElementById('test-walk-left').addEventListener('click', () => {
+                    this.testAnimation('left', true);
+                });
+                
+                document.getElementById('test-walk-down').addEventListener('click', () => {
+                    this.testAnimation('down', true);
+                });
+                
+                document.getElementById('test-walk-right').addEventListener('click', () => {
+                    this.testAnimation('right', true);
+                });
+                
+                // Idle animations
+                document.getElementById('test-idle-up').addEventListener('click', () => {
+                    this.testAnimation('up', false);
+                });
+                
+                document.getElementById('test-idle-left').addEventListener('click', () => {
+                    this.testAnimation('left', false);
+                });
+                
+                document.getElementById('test-idle-down').addEventListener('click', () => {
+                    this.testAnimation('down', false);
+                });
+                
+                document.getElementById('test-idle-right').addEventListener('click', () => {
+                    this.testAnimation('right', false);
+                });
+                
+                // Special controls
+                document.getElementById('cycle-all').addEventListener('click', () => {
+                    this.cycleAllAnimations();
+                });
+                
+                document.getElementById('show-hitbox').addEventListener('click', () => {
+                    this.toggleHitbox();
+                });
+                
+                document.getElementById('test-speed').addEventListener('click', () => {
+                    this.testSpeedVariations();
+                });
+            }
+            
+            testAnimation(direction, isWalking) {
+                console.log(`🎬 Testing ${direction} ${isWalking ? 'walk' : 'idle'} animation`);
+                
+                if (isWalking) {
+                    this.puffy.move(direction);
+                } else {
+                    this.puffy.stop();
+                    // Force to specific idle animation
+                    const idleAnim = `idle_${direction}`;
+                    this.puffy.playAnimation(idleAnim);
+                }
+                
+                // Update UI
+                const animName = `${direction}_${isWalking ? 'walk' : 'idle'}`;
+                document.getElementById('current-anim').textContent = animName;
+                if (direction === 'right' && isWalking) {
+                    document.getElementById('current-anim').textContent += ' (flipped)';
+                }
+                
+                // Highlight active button
+                document.querySelectorAll('.anim-btn').forEach(btn => btn.classList.remove('active'));
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                }
+            }
+            
+            cycleAllAnimations() {
+                console.log('🔄 Cycling through all animations...');
+                
+                const animations = [
+                    'walk_up', 'idle_up',
+                    'walk_left', 'idle_left', 
+                    'walk_down', 'idle_down',
+                    'walk_right', 'idle_right'
+                ];
+                
+                let index = 0;
+                const nextAnim = () => {
+                    if (index < animations.length) {
+                        const animKey = animations[index];
+                        
+                        if (animKey.startsWith('walk_')) {
+                            const direction = animKey.replace('walk_', '');
+                            this.puffy.move(direction);
+                        } else {
+                            this.puffy.playAnimation(animKey);
+                        }
+                        
+                        let displayText = animKey;
+                        if (animKey === 'walk_right' || animKey === 'idle_right') {
+                            displayText += ' (flipped)';
+                        }
+                        
+                        document.getElementById('current-anim').textContent = displayText;
+                        
+                        index++;
+                        setTimeout(nextAnim, 1500);
+                    }
+                };
+                
+                nextAnim();
+            }
+            
+            toggleHitbox() {
+                this.isShowingHitbox = !this.isShowingHitbox;
+                
+                if (this.puffy && this.puffy.showDebugInfo) {
+                    this.puffy.showDebugInfo();
+                }
+                
+                const btn = document.getElementById('show-hitbox');
+                btn.textContent = this.isShowingHitbox ? 'Hide Hitbox (Debug Info)' : 'Show Hitbox (Debug Info)';
+                btn.classList.toggle('active', this.isShowingHitbox);
+            }
+            
+            testSpeedVariations() {
+                console.log('⚡ Testing speed-based animation timing...');
+                
+                const speeds = [50, 100, 150, 200];
+                let speedIndex = 0;
+                
+                const testNextSpeed = () => {
+                    if (speedIndex < speeds.length) {
+                        const speed = speeds[speedIndex];
+                        
+                        // Update sprite speed for this test
+                        this.puffy.speed = speed;
+                        this.puffy.move('right');
+                        
+                        document.getElementById('current-anim').textContent = 
+                            `right_walk (flipped, speed: ${speed})`;
+                        
+                        speedIndex++;
+                        setTimeout(testNextSpeed, 2000);
+                    } else {
+                        this.puffy.stop();
+                        this.puffy.speed = 100; // Reset to default
+                        document.getElementById('current-anim').textContent = 'speed_test_complete';
+                    }
+                };
+                
+                testNextSpeed();
+            }
+            
+            updateSpriteInfo() {
+                const info = document.getElementById('frame-info');
+                info.innerHTML = `
+                    <strong>Sprite Sheet:</strong> puffy_4_by_4.png<br>
+                    <strong>Frame Size:</strong> Auto-detected (dynamic)<br>
+                    <strong>Total Frames:</strong> 16 (4×4 grid)<br>
+                    <strong>Animations Created:</strong> 8 (4 walk + 4 idle)<br>
+                    <strong>Display Scale:</strong> 48x48 pixels<br>
+                    <strong>Collision Box:</strong> 32x32 pixels (centered)<br>
+                    <strong>Right Movement:</strong> Left frames flipped horizontally
+                `;
+            }
+            
+            startPerformanceMonitoring() {
+                const monitor = () => {
+                    const now = performance.now();
+                    const deltaTime = now - this.lastFrameTime;
+                    
+                    this.frameCount++;
+                    const fps = 1000 / deltaTime;
+                    
+                    document.getElementById('fps-counter').textContent = Math.round(fps);
+                    document.getElementById('frame-count').textContent = this.frameCount;
+                    
+                    this.lastFrameTime = now;
+                    requestAnimationFrame(monitor);
+                };
+                
+                requestAnimationFrame(monitor);
+            }
+        }
+        
+        // Initialize sprite test
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎮 Initializing Puffy sprite test...');
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 320,
+                height: 400,
+                parent: 'phaser-sprite-test',
+                backgroundColor: '#2D1B69',
+                scale: {
+                    mode: Phaser.Scale.FIT,
+                    autoCenter: Phaser.Scale.CENTER_BOTH
+                },
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        gravity: { y: 300 },
+                        debug: false
+                    }
+                },
+                scene: [SpriteTestScene]
+            };
+            
+            const game = new Phaser.Game(config);
+            
+            console.log('✅ Sprite test initialized!');
+        });
+    </script>
+</body>
+</html> 

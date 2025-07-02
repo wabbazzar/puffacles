@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🪜 Ladder Climbing Test - Hop Hop Puff</title>
+    <link rel="stylesheet" href="styles/mobile.css">
+    <link rel="stylesheet" href="styles/desktop.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #game-container canvas {
+            display: block;
+            width: 100% !important;
+            height: auto !important;
+            /* Remove max-height constraint to prevent bottom cutoff */
+        }
+        
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        
+        .debug-row {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .debug-label {
+            color: #00ffff;
+        }
+        
+        .debug-value {
+            color: #ffffff;
+            text-align: right;
+        }
+        
+        .status-good {
+            color: #00ff00 !important;
+        }
+        
+        .status-bad {
+            color: #ff0000 !important;
+        }
+        
+        .test-instructions {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .test-instructions h3 {
+            margin-top: 0;
+            color: #2c5282;
+        }
+        
+        .ladder-debug {
+            background: rgba(255, 255, 0, 0.3);
+            border: 2px dashed #ffff00;
+            position: absolute;
+            z-index: 999;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🪜 Ladder Climbing Test</h1>
+        
+        <div class="test-instructions">
+            <h3>🧪 Test Procedure:</h3>
+            <ol>
+                <li><strong>Start Position:</strong> Puffy begins on bottom platform</li>
+                <li><strong>Find Ladder:</strong> Move left/right to position near yellow ladder</li>
+                <li><strong>Climb Test:</strong> Press UP (W key or ↑ D-pad) - Puffy should climb smoothly</li>
+                <li><strong>Debug Monitor:</strong> Watch right panel for ladder detection status</li>
+                <li><strong>Expected:</strong> Puffy sticks to ladder, moves up without falling</li>
+            </ol>
+            
+            <p><strong>🎮 Controls:</strong> 
+                Desktop: WASD keys | 
+                Mobile: Virtual D-pad below
+            </p>
+        </div>
+        
+        <!-- Game Container -->
+        <div id="game-container"></div>
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" style="
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: #2D1B69; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 10000;
+        ">
+            <div style="text-align: center; color: white;">
+                <h2>🪜 Loading Ladder Test...</h2>
+                <p>Initializing climbing mechanics...</p>
+            </div>
+        </div>
+        
+        <!-- Debug Panel -->
+        <div class="debug-panel">
+            <h4 style="margin-top: 0; color: #00ffff;">🐛 Ladder Debug Monitor</h4>
+            
+            <div class="debug-row">
+                <span class="debug-label">Position:</span>
+                <span class="debug-value" id="debug-position">0, 0</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">Velocity:</span>
+                <span class="debug-value" id="debug-velocity">0, 0</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">On Ladder:</span>
+                <span class="debug-value" id="debug-ladder">false</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">Gravity:</span>
+                <span class="debug-value" id="debug-gravity">300</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">Touching Down:</span>
+                <span class="debug-value" id="debug-touching">false</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">Animation:</span>
+                <span class="debug-value" id="debug-animation">idle_down</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">Ladder Distance:</span>
+                <span class="debug-value" id="debug-distance">∞</span>
+            </div>
+            
+            <div class="debug-row">
+                <span class="debug-label">Input:</span>
+                <span class="debug-value" id="debug-input">none</span>
+            </div>
+        </div>
+        
+        <!-- Mobile Virtual D-pad -->
+        <div class="dpad-container">
+            <div class="dpad">
+                <button class="dpad-btn dpad-up" data-direction="up">↑</button>
+                <button class="dpad-btn dpad-left" data-direction="left">←</button>
+                <button class="dpad-btn dpad-center"></button>
+                <button class="dpad-btn dpad-right" data-direction="right">→</button>
+                <button class="dpad-btn dpad-down" data-direction="down">↓</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phaser.js -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    
+    <!-- Puffy Sprite System -->
+    <script src="game/sprites/PuffySprite.js"></script>
+    
+    <!-- Ladder Test Game -->
+    <script>
+        console.log('🪜 Loading Ladder Climbing Test...');
+        
+        class LadderTestGame {
+            constructor() {
+                this.game = null;
+                this.debugInterval = null;
+                this.init();
+            }
+            
+            init() {
+                const config = {
+                    type: Phaser.AUTO,
+                    width: 800,  // Larger canvas for desktop
+                    height: 600, // Better aspect ratio for desktop
+                    parent: 'game-container',
+                    backgroundColor: '#87CEEB', // Sky blue for visibility
+                    
+                    scale: {
+                        mode: Phaser.Scale.RESIZE, // Resize instead of FIT for desktop
+                        parent: 'game-container',
+                        autoCenter: Phaser.Scale.CENTER_BOTH,
+                        width: 800,
+                        height: 600
+                    },
+                    
+                    physics: {
+                        default: 'arcade',
+                        arcade: {
+                            gravity: { y: 300 },
+                            debug: true // Enable visual debugging
+                        }
+                    },
+                    
+                    scene: [LadderTestScene]
+                };
+                
+                this.game = new Phaser.Game(config);
+                this.startDebugMonitor();
+                
+                // Hide loading screen
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.display = 'none';
+                }, 1500);
+            }
+            
+            startDebugMonitor() {
+                this.debugInterval = setInterval(() => {
+                    if (this.game && this.game.scene.scenes[0] && this.game.scene.scenes[0].puffy) {
+                        this.updateDebugPanel();
+                    }
+                }, 100); // Update 10 times per second
+            }
+            
+            updateDebugPanel() {
+                const scene = this.game.scene.scenes[0];
+                const puffy = scene.puffy;
+                
+                if (!puffy || !puffy.sprite) return;
+                
+                // Position
+                const x = Math.round(puffy.sprite.x);
+                const y = Math.round(puffy.sprite.y);
+                document.getElementById('debug-position').textContent = `${x}, ${y}`;
+                
+                // Velocity
+                const vx = Math.round(puffy.body.velocity.x);
+                const vy = Math.round(puffy.body.velocity.y);
+                document.getElementById('debug-velocity').textContent = `${vx}, ${vy}`;
+                
+                // Ladder status
+                const ladderStatus = scene.isOnLadder;
+                const ladderElement = document.getElementById('debug-ladder');
+                ladderElement.textContent = ladderStatus;
+                ladderElement.className = ladderStatus ? 'debug-value status-good' : 'debug-value status-bad';
+                
+                // Gravity
+                const gravity = puffy.body.gravity.y;
+                document.getElementById('debug-gravity').textContent = gravity;
+                
+                // Touching down
+                const touchingDown = puffy.body.touching.down;
+                document.getElementById('debug-touching').textContent = touchingDown;
+                
+                // Animation
+                document.getElementById('debug-animation').textContent = puffy.currentDirection || 'unknown';
+                
+                // Distance to nearest ladder
+                let minDistance = Infinity;
+                if (scene.ladderZones) {
+                    scene.ladderZones.forEach(ladder => {
+                        const dist = Phaser.Math.Distance.Between(
+                            puffy.sprite.x, puffy.sprite.y,
+                            ladder.x, ladder.y
+                        );
+                        minDistance = Math.min(minDistance, dist);
+                    });
+                }
+                document.getElementById('debug-distance').textContent = 
+                    minDistance === Infinity ? '∞' : Math.round(minDistance);
+                
+                // Current input
+                let currentInput = 'none';
+                if (scene.cursors) {
+                    if (scene.cursors.W.isDown) currentInput = 'UP';
+                    else if (scene.cursors.S.isDown) currentInput = 'DOWN';
+                    else if (scene.cursors.A.isDown) currentInput = 'LEFT';
+                    else if (scene.cursors.D.isDown) currentInput = 'RIGHT';
+                }
+                document.getElementById('debug-input').textContent = currentInput;
+            }
+        }
+        
+        class LadderTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'LadderTestScene' });
+                this.puffy = null;
+                this.platforms = null;
+                this.ladders = null;
+                this.ladderZones = [];
+                this.isOnLadder = false;
+                this.currentDirection = 'down';
+                this.isMoving = false;
+            }
+            
+            preload() {
+                console.log('🪜 Loading test assets...');
+                
+                // Platform graphics
+                this.add.graphics()
+                    .fillStyle(0x8b4513)
+                    .fillRect(0, 0, 200, 20)
+                    .generateTexture('platform', 200, 20);
+            }
+            
+            create() {
+                console.log('🪜 Creating ladder test scene...');
+                
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                // Create simple test structure - just 3 platforms with 1 prominent ladder
+                this.createTestStructure();
+                
+                // Create Puffy
+                this.puffy = new PuffySprite(this);
+                
+                // Set up collision after delay
+                this.time.delayedCall(1000, () => {
+                    this.setupCollisionDetection();
+                    this.positionPuffyAtStart();
+                });
+                
+                // Controls
+                this.cursors = this.input.keyboard.addKeys('W,S,A,D');
+                this.setupVirtualDPad();
+                
+                // Instructions
+                this.add.text(width * 0.5, 30, '🪜 LADDER CLIMBING TEST', {
+                    fontSize: '20px',
+                    color: '#000080',
+                    align: 'center',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+                
+                this.add.text(width * 0.5, 60, 'Move to yellow ladder and press UP to climb', {
+                    fontSize: '16px',
+                    color: '#000080',
+                    align: 'center'
+                }).setOrigin(0.5);
+                
+                console.log('✅ Ladder test scene ready');
+            }
+            
+            createTestStructure() {
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                this.platforms = this.physics.add.staticGroup();
+                this.ladders = this.physics.add.staticGroup();
+                
+                // Bottom platform (starting position)
+                const bottomPlatform = this.add.rectangle(width * 0.5, height - 50, width * 0.8, 20, 0x8b4513);
+                bottomPlatform.setStrokeStyle(2, 0x654321);
+                this.physics.add.existing(bottomPlatform, true);
+                this.platforms.add(bottomPlatform);
+                
+                // Middle platform
+                const middlePlatform = this.add.rectangle(width * 0.5, height - 250, width * 0.6, 20, 0x8b4513);
+                middlePlatform.setStrokeStyle(2, 0x654321);
+                this.physics.add.existing(middlePlatform, true);
+                this.platforms.add(middlePlatform);
+                
+                // Top platform
+                const topPlatform = this.add.rectangle(width * 0.5, height - 450, width * 0.4, 20, 0x8b4513);
+                topPlatform.setStrokeStyle(2, 0x654321);
+                this.physics.add.existing(topPlatform, true);
+                this.platforms.add(topPlatform);
+                
+                // ONE PROMINENT LADDER - easy to test
+                this.createTestLadder(width * 0.3, height - 150, 180); // From bottom to middle
+                this.createTestLadder(width * 0.7, height - 350, 180); // From middle to top
+                
+                console.log('🏗️ Created simple test structure with 2 ladders');
+            }
+            
+            createTestLadder(x, centerY, height) {
+                // Visual ladder - very prominent
+                const extendedHeight = height + 40; // Match main game extension
+                const extendedCenterY = centerY - 20; // Shift up to extend above platform
+                
+                const ladder = this.add.rectangle(x, extendedCenterY, 20, extendedHeight, 0xFFD700); // Bright gold
+                ladder.setStrokeStyle(4, 0xFFA500); // Orange border
+                
+                // Add ladder text label for clarity
+                this.add.text(x, extendedCenterY - extendedHeight/2 - 20, '🪜', {
+                    fontSize: '24px',
+                    align: 'center'
+                }).setOrigin(0.5);
+                
+                // Collision zone (larger than visual for easier testing)
+                const ladderZone = this.physics.add.sprite(x, extendedCenterY, null);
+                ladderZone.setVisible(false);
+                ladderZone.body.setSize(40, extendedHeight); // Extra wide for easier detection
+                ladderZone.setImmovable(true);
+                
+                // Debug visualization - show exact collision zone
+                const debugViz = this.add.rectangle(x, extendedCenterY, 40, extendedHeight);
+                debugViz.setStrokeStyle(3, 0x00FF00, 0.8); // Bright green border
+                debugViz.setFillStyle(0x00FF00, 0.2); // Semi-transparent green fill
+                
+                // Add text showing collision zone
+                this.add.text(x + 25, extendedCenterY, 'CLIMB\nZONE', {
+                    fontSize: '12px',
+                    color: '#00AA00',
+                    align: 'center'
+                }).setOrigin(0.5);
+                
+                this.ladders.add(ladderZone);
+                this.ladderZones.push({
+                    zone: ladderZone,
+                    x: x,
+                    y: extendedCenterY,
+                    height: extendedHeight
+                });
+                
+                console.log(`🪜 Created EXTENDED test ladder at (${x}, ${extendedCenterY}) with height ${extendedHeight}`);
+            }
+            
+            setupCollisionDetection() {
+                if (!this.puffy || !this.puffy.sprite) {
+                    console.log('⏳ Puffy not ready for collision detection');
+                    return;
+                }
+                
+                console.log('🎯 Setting up ladder test collision detection...');
+                
+                // Platform collision
+                this.physics.add.collider(this.puffy.sprite, this.platforms, (puffy, platform) => {
+                    console.log('🏃 Puffy hit platform');
+                });
+                
+                // Ladder overlap detection
+                this.physics.add.overlap(this.puffy.sprite, this.ladders, (puffy, ladder) => {
+                    console.log('🪜 LADDER OVERLAP DETECTED!');
+                    this.onLadderEnter(ladder);
+                });
+                
+                console.log('✅ Collision detection active');
+            }
+            
+            positionPuffyAtStart() {
+                if (!this.puffy || !this.puffy.sprite) return;
+                
+                // Position Puffy on bottom platform, near ladder
+                const startX = this.cameras.main.width * 0.25;
+                const startY = this.cameras.main.height - 100;
+                
+                this.puffy.sprite.setPosition(startX, startY);
+                console.log(`🐱 Puffy positioned at start: (${startX}, ${startY})`);
+            }
+            
+            onLadderEnter(ladderOrInfo) {
+                // Handle both collision object and direct ladder info
+                let ladderInfo = ladderOrInfo;
+                if (ladderOrInfo.zone) {
+                    // It's already a ladder info object
+                    ladderInfo = ladderOrInfo;
+                } else {
+                    // It's a collision object, find the matching ladder info
+                    ladderInfo = this.ladderZones.find(zone => zone.zone === ladderOrInfo);
+                }
+                
+                if (!ladderInfo) {
+                    console.log('❌ Ladder zone not found');
+                    return;
+                }
+                
+                console.log(`🪜 ENTERING LADDER ZONE at (${ladderInfo.x}, ${ladderInfo.y})`);
+                console.log(`🪜 Previous isOnLadder state: ${this.isOnLadder}`);
+                
+                if (!this.isOnLadder) {
+                    this.isOnLadder = true;
+                    console.log('🪜 Setting isOnLadder = true');
+                    
+                    // Verify Puffy is ready
+                    if (!this.puffy || !this.puffy.isReady || !this.puffy.body) {
+                        console.error(`❌ Cannot enter ladder - Puffy not ready (exists: ${!!this.puffy}, ready: ${this.puffy?.isReady}, body: ${!!this.puffy?.body})`);
+                        return;
+                    }
+                    
+                    // Cancel gravity
+                    console.log(`🪜 Cancelling gravity: ${this.puffy.body.gravity.y} -> -300`);
+                    this.puffy.body.setGravityY(-300);
+                    this.puffy.body.setVelocityY(0);
+                    
+                    console.log(`🪜 Gravity set to: ${this.puffy.body.gravity.y}`);
+                    console.log(`🪜 Velocity set to: ${this.puffy.body.velocity.y}`);
+                    console.log(`🪜 ✅ Successfully entered ladder zone!`);
+                } else {
+                    console.log('🪜 Already on ladder, no state change needed');
+                }
+            }
+            
+            checkLadderExit() {
+                if (!this.isOnLadder || !this.puffy.sprite) return;
+                
+                let stillOnLadder = false;
+                let minDistance = Infinity;
+                
+                this.ladderZones.forEach(ladderInfo => {
+                    const distance = Phaser.Math.Distance.Between(
+                        this.puffy.sprite.x, this.puffy.sprite.y,
+                        ladderInfo.x, ladderInfo.y
+                    );
+                    
+                    minDistance = Math.min(minDistance, distance);
+                    
+                    if (distance < 25) { // Tighter detection to match main game
+                        stillOnLadder = true;
+                    }
+                });
+                
+                if (!stillOnLadder) {
+                    console.log(`🪜 EXITING LADDER ZONE (distance: ${Math.round(minDistance)})`);
+                    this.isOnLadder = false;
+                    this.puffy.body.setGravityY(300);
+                }
+            }
+            
+            setupVirtualDPad() {
+                const dpadButtons = document.querySelectorAll('.dpad-btn');
+                
+                dpadButtons.forEach(btn => {
+                    const direction = btn.dataset.direction;
+                    if (!direction) return;
+                    
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.startMovement(direction);
+                    }, { passive: false });
+                    
+                    btn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        this.stopMovement();
+                    }, { passive: false });
+                    
+                    btn.addEventListener('mousedown', (e) => {
+                        this.startMovement(direction);
+                    });
+                    
+                    btn.addEventListener('mouseup', (e) => {
+                        this.stopMovement();
+                    });
+                });
+            }
+            
+            startMovement(direction) {
+                if (!this.puffy || !this.puffy.sprite) return;
+                
+                this.currentDirection = direction;
+                this.isMoving = true;
+                
+                console.log(`🎮 INPUT: ${direction} (ladder: ${this.isOnLadder})`);
+                
+                if (this.isOnLadder) {
+                    this.handleLadderMovement(direction);
+                } else {
+                    this.handlePlatformMovement(direction);
+                }
+            }
+            
+            handleLadderMovement(direction) {
+                console.log(`🪜 LADDER MOVEMENT: ${direction}`);
+                
+                // Debug current state
+                console.log('🐛 DEBUG STATE:');
+                console.log(`   this.puffy exists: ${!!this.puffy}`);
+                console.log(`   this.puffy.sprite exists: ${!!this.puffy?.sprite}`);
+                console.log(`   this.puffy.body exists: ${!!this.puffy?.body}`);
+                console.log(`   this.puffy.speed: ${this.puffy?.speed}`);
+                console.log(`   isOnLadder: ${this.isOnLadder}`);
+                
+                if (!this.puffy || !this.puffy.isReady || !this.puffy.sprite || !this.puffy.body) {
+                    console.error(`❌ CRITICAL: Puffy not ready in ladder test! (exists: ${!!this.puffy}, ready: ${this.puffy?.isReady}, sprite: ${!!this.puffy?.sprite}, body: ${!!this.puffy?.body})`);
+                    return;
+                }
+                
+                // Continuously cancel gravity
+                console.log(`🪜 Setting gravity from ${this.puffy.body.gravity.y} to -300`);
+                this.puffy.body.setGravityY(-300);
+                console.log(`🪜 Gravity now: ${this.puffy.body.gravity.y}`);
+                
+                switch (direction) {
+                    case 'up':
+                        console.log('🪜 CLIMBING UP!');
+                        console.log(`   Setting velocity Y from ${this.puffy.body.velocity.y} to -${this.puffy.speed}`);
+                        this.puffy.body.setVelocityY(-this.puffy.speed);
+                        this.puffy.body.setVelocityX(0);
+                        console.log(`   Velocity now: (${this.puffy.body.velocity.x}, ${this.puffy.body.velocity.y})`);
+                        try {
+                            this.puffy.playAnimation('walk_up');
+                            console.log('   Animation: walk_up started');
+                        } catch (e) {
+                            console.error('   Animation error:', e);
+                        }
+                        break;
+                        
+                    case 'down':
+                        console.log('🪜 CLIMBING DOWN!');
+                        console.log(`   Setting velocity Y from ${this.puffy.body.velocity.y} to ${this.puffy.speed * 0.8}`);
+                        this.puffy.body.setVelocityY(this.puffy.speed * 0.8);
+                        this.puffy.body.setVelocityX(0);
+                        console.log(`   Velocity now: (${this.puffy.body.velocity.x}, ${this.puffy.body.velocity.y})`);
+                        try {
+                            this.puffy.playAnimation('walk_down');
+                            console.log('   Animation: walk_down started');
+                        } catch (e) {
+                            console.error('   Animation error:', e);
+                        }
+                        break;
+                        
+                    case 'left':
+                    case 'right':
+                        console.log(`🪜 SIDE MOVEMENT ON LADDER: ${direction}`);
+                        const horizontalSpeed = this.puffy.speed * 0.3;
+                        console.log(`   Setting velocity X to ${direction === 'left' ? -horizontalSpeed : horizontalSpeed}`);
+                        this.puffy.body.setVelocityX(direction === 'left' ? -horizontalSpeed : horizontalSpeed);
+                        this.puffy.body.setVelocityY(0);
+                        console.log(`   Velocity now: (${this.puffy.body.velocity.x}, ${this.puffy.body.velocity.y})`);
+                        try {
+                            this.puffy.playAnimation(direction === 'left' ? 'walk_left' : 'walk_right');
+                            console.log(`   Animation: walk_${direction} started`);
+                        } catch (e) {
+                            console.error('   Animation error:', e);
+                        }
+                        break;
+                }
+                
+                // Verify the changes took effect
+                setTimeout(() => {
+                    console.log(`🔍 POST-MOVEMENT CHECK:`);
+                    console.log(`   Final gravity: ${this.puffy.body.gravity.y}`);
+                    console.log(`   Final velocity: (${this.puffy.body.velocity.x}, ${this.puffy.body.velocity.y})`);
+                }, 50);
+            }
+            
+            handlePlatformMovement(direction) {
+                console.log(`🏃 PLATFORM MOVEMENT: ${direction}`);
+                
+                switch (direction) {
+                    case 'left':
+                        this.puffy.body.setVelocityX(-this.puffy.speed);
+                        this.puffy.playAnimation('walk_left');
+                        break;
+                        
+                    case 'right':
+                        this.puffy.body.setVelocityX(this.puffy.speed);
+                        this.puffy.playAnimation('walk_right');
+                        break;
+                        
+                    case 'up':
+                        if (this.puffy.body.touching.down) {
+                            this.puffy.body.setVelocityY(-200);
+                            this.puffy.playAnimation('walk_up');
+                        }
+                        break;
+                        
+                    case 'down':
+                        this.puffy.playAnimation('walk_down');
+                        break;
+                }
+            }
+            
+            stopMovement() {
+                if (!this.puffy || !this.puffy.sprite) return;
+                
+                this.isMoving = false;
+                console.log(`🛑 STOP MOVEMENT (ladder: ${this.isOnLadder})`);
+                
+                if (this.isOnLadder) {
+                    this.puffy.body.setVelocity(0, 0);
+                    this.puffy.body.setGravityY(-300);
+                } else {
+                    this.puffy.body.setVelocityX(0);
+                }
+                
+                const lastDirection = this.currentDirection;
+                this.puffy.playAnimation(`idle_${lastDirection}`);
+            }
+            
+            update() {
+                // Check for ladder exit
+                this.checkLadderExit();
+                
+                // Manual ladder proximity check (since overlap only fires once)
+                if (!this.isOnLadder && this.puffy && this.puffy.sprite) {
+                    let nearLadder = false;
+                    let closestDistance = Infinity;
+                    let closestLadder = null;
+                    
+                    this.ladderZones.forEach(ladderInfo => {
+                        const distance = Phaser.Math.Distance.Between(
+                            this.puffy.sprite.x, this.puffy.sprite.y,
+                            ladderInfo.x, ladderInfo.y
+                        );
+                        
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestLadder = ladderInfo;
+                        }
+                        
+                        if (distance < 25) { // Detection radius
+                            nearLadder = true;
+                        }
+                    });
+                    
+                    if (nearLadder) {
+                        console.log(`🪜 MANUAL LADDER DETECTION: Distance ${Math.round(closestDistance)}px to ladder at (${closestLadder.x}, ${closestLadder.y})`);
+                        this.onLadderEnter(closestLadder);
+                    }
+                }
+                
+                // Handle keyboard input
+                if (this.cursors.W.isDown) {
+                    console.log('🎮 W KEY PRESSED for UP movement');
+                    this.startMovement('up');
+                } else if (this.cursors.S.isDown) {
+                    console.log('🎮 S KEY PRESSED for DOWN movement');
+                    this.startMovement('down');
+                } else if (this.cursors.A.isDown) {
+                    console.log('🎮 A KEY PRESSED for LEFT movement');
+                    this.startMovement('left');
+                } else if (this.cursors.D.isDown) {
+                    console.log('🎮 D KEY PRESSED for RIGHT movement');
+                    this.startMovement('right');
+                } else if (this.isMoving) {
+                    console.log('🎮 NO KEYS PRESSED - stopping movement');
+                    this.stopMovement();
+                }
+                
+                // AGGRESSIVE ladder safety check
+                if (this.isOnLadder && this.puffy && this.puffy.body) {
+                    // Ensure gravity stays cancelled
+                    if (this.puffy.body.gravity.y !== -300) {
+                        console.log(`🪜 EMERGENCY GRAVITY FIX: ${this.puffy.body.gravity.y} -> -300`);
+                        this.puffy.body.setGravityY(-300);
+                    }
+                    
+                    // Prevent unexpected falling
+                    if (this.puffy.body.velocity.y > 0 && !this.isMoving) {
+                        console.log(`🪜 EMERGENCY FALL PREVENTION: stopping velocity ${this.puffy.body.velocity.y}`);
+                        this.puffy.body.setVelocityY(0);
+                    }
+                }
+            }
+        }
+        
+        // Start the test
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🪜 Starting Ladder Test...');
+            window.ladderTest = new LadderTestGame();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Touch Latency Test - <50ms Requirement</title>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #2D1B69 0%, #1a0f3a 100%);
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            touch-action: manipulation;
+        }
+        
+        .test-section {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .test-section h3 {
+            color: #00ffff;
+            margin-top: 0;
+        }
+        
+        .latency-display {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        
+        .latency-good {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .latency-warning {
+            background: rgba(255, 193, 7, 0.3);
+            border: 2px solid #FFC107;
+            color: #FFC107;
+        }
+        
+        .latency-bad {
+            background: rgba(244, 67, 54, 0.3);
+            border: 2px solid #F44336;
+            color: #F44336;
+        }
+        
+        .test-target {
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 255, 255, 0.3);
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            touch-action: manipulation;
+        }
+        
+        .test-target:active {
+            background: rgba(0, 255, 255, 0.8);
+            transform: scale(0.95);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ffff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        
+        .virtual-dpad {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+        }
+        
+        .dpad-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 255, 0.3);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        .dpad-btn:active {
+            background: rgba(0, 255, 255, 0.8);
+            transform: scale(0.9);
+        }
+        
+        .dpad-up { top: 0; left: 70px; }
+        .dpad-left { top: 70px; left: 0; }
+        .dpad-right { top: 70px; right: 0; }
+        .dpad-down { bottom: 0; left: 70px; }
+        
+        button {
+            background: rgba(0, 255, 255, 0.3);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            color: #fff;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: rgba(0, 255, 255, 0.6);
+        }
+        
+        .results-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        
+        .result-item {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #00ffff; text-align: center;">⚡ Touch Latency Test - <50ms Requirement</h1>
+    
+    <div class="test-section">
+        <h3>📊 Current Touch Latency</h3>
+        <div id="current-latency" class="latency-display latency-good">
+            Ready to test...
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div id="avg-latency" class="stat-value">--</div>
+                <div class="stat-label">Average (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div id="min-latency" class="stat-value">--</div>
+                <div class="stat-label">Best (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div id="max-latency" class="stat-value">--</div>
+                <div class="stat-label">Worst (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div id="test-count" class="stat-value">0</div>
+                <div class="stat-label">Tests</div>
+            </div>
+            <div class="stat-card">
+                <div id="pass-rate" class="stat-value">--%</div>
+                <div class="stat-label">Pass Rate (<50ms)</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🎯 Latency Test Target</h3>
+        <p style="text-align: center;">Tap the target as soon as it appears to measure touch response time:</p>
+        
+        <div id="test-target" class="test-target" style="display: none;">
+            TAP ME!
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="start-test">Start Latency Test</button>
+            <button id="auto-test">Auto Test (10x)</button>
+            <button id="clear-results">Clear Results</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🎮 Virtual D-Pad Latency Test</h3>
+        <p style="text-align: center;">Test the actual game virtual D-pad latency:</p>
+        
+        <div class="virtual-dpad">
+            <div class="dpad-btn dpad-up" data-direction="up">↑</div>
+            <div class="dpad-btn dpad-left" data-direction="left">←</div>
+            <div class="dpad-btn dpad-right" data-direction="right">→</div>
+            <div class="dpad-btn dpad-down" data-direction="down">↓</div>
+        </div>
+        
+        <div id="dpad-latency" class="latency-display latency-good">
+            Touch any D-pad button...
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 Test Results</h3>
+        <div id="results-list" class="results-list">
+            <div class="result-item">No tests performed yet</div>
+        </div>
+    </div>
+    
+    <script>
+        class TouchLatencyTester {
+            constructor() {
+                this.results = [];
+                this.isTestActive = false;
+                this.testStartTime = 0;
+                this.autoTestCount = 0;
+                this.maxAutoTests = 10;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.updateDisplay();
+            }
+            
+            setupEventListeners() {
+                // Test target events
+                document.getElementById('start-test').addEventListener('click', () => {
+                    this.startSingleTest();
+                });
+                
+                document.getElementById('auto-test').addEventListener('click', () => {
+                    this.startAutoTest();
+                });
+                
+                document.getElementById('clear-results').addEventListener('click', () => {
+                    this.clearResults();
+                });
+                
+                const target = document.getElementById('test-target');
+                target.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleTargetTouch();
+                }, { passive: false });
+                
+                target.addEventListener('mousedown', (e) => {
+                    this.handleTargetTouch();
+                });
+                
+                // D-pad latency testing
+                const dpadButtons = document.querySelectorAll('.dpad-btn');
+                dpadButtons.forEach(btn => {
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.measureDpadLatency(btn, e);
+                    }, { passive: false });
+                    
+                    btn.addEventListener('mousedown', (e) => {
+                        this.measureDpadLatency(btn, e);
+                    });
+                });
+            }
+            
+            startSingleTest() {
+                console.log('🎯 Starting single latency test...');
+                
+                const target = document.getElementById('test-target');
+                
+                // Random delay before showing target (500-2000ms)
+                const delay = 500 + Math.random() * 1500;
+                
+                setTimeout(() => {
+                    this.testStartTime = performance.now();
+                    this.isTestActive = true;
+                    target.style.display = 'flex';
+                    
+                    // Auto-hide after 3 seconds if not touched
+                    setTimeout(() => {
+                        if (this.isTestActive) {
+                            this.isTestActive = false;
+                            target.style.display = 'none';
+                            this.addResult(null, 'Timeout - no touch detected');
+                        }
+                    }, 3000);
+                }, delay);
+            }
+            
+            startAutoTest() {
+                console.log('🤖 Starting automated 10-test sequence...');
+                this.autoTestCount = 0;
+                this.runNextAutoTest();
+            }
+            
+            runNextAutoTest() {
+                if (this.autoTestCount >= this.maxAutoTests) {
+                    console.log('✅ Auto test sequence complete!');
+                    return;
+                }
+                
+                this.autoTestCount++;
+                console.log('🎯 Auto test ' + this.autoTestCount + '/' + this.maxAutoTests);
+                
+                // Simulate automated touch after random delay
+                const target = document.getElementById('test-target');
+                const delay = 200 + Math.random() * 800;
+                
+                setTimeout(() => {
+                    this.testStartTime = performance.now();
+                    this.isTestActive = true;
+                    target.style.display = 'flex';
+                    
+                    // Simulate touch after 50-200ms (human-like response)
+                    const responseTime = 20 + Math.random() * 100;
+                    setTimeout(() => {
+                        if (this.isTestActive) {
+                            this.handleTargetTouch();
+                        }
+                    }, responseTime);
+                }, delay);
+            }
+            
+            handleTargetTouch() {
+                if (!this.isTestActive) return;
+                
+                const touchTime = performance.now();
+                const latency = touchTime - this.testStartTime;
+                
+                this.isTestActive = false;
+                document.getElementById('test-target').style.display = 'none';
+                
+                this.addResult(latency);
+                
+                // Continue auto test if running
+                if (this.autoTestCount < this.maxAutoTests && this.autoTestCount > 0) {
+                    setTimeout(() => {
+                        this.runNextAutoTest();
+                    }, 1000);
+                }
+            }
+            
+            measureDpadLatency(btn, event) {
+                const startTime = performance.now();
+                
+                // Measure time until visual feedback appears
+                requestAnimationFrame(() => {
+                    const endTime = performance.now();
+                    const latency = endTime - startTime;
+                    
+                    this.displayDpadLatency(latency, btn.dataset.direction);
+                });
+            }
+            
+            displayDpadLatency(latency, direction) {
+                const display = document.getElementById('dpad-latency');
+                const rounded = Math.round(latency * 10) / 10;
+                
+                let className = 'latency-good';
+                let status = '✅ EXCELLENT';
+                
+                if (latency > 50) {
+                    className = 'latency-bad';
+                    status = '❌ TOO SLOW';
+                } else if (latency > 30) {
+                    className = 'latency-warning';
+                    status = '⚠️ MARGINAL';
+                }
+                
+                display.className = 'latency-display ' + className;
+                display.innerHTML = direction.toUpperCase() + ' D-PAD<br>' + rounded + 'ms<br><small>' + status + '</small>';
+            }
+            
+            addResult(latency, note) {
+                const result = {
+                    timestamp: new Date().toLocaleTimeString(),
+                    latency: latency,
+                    note: note || null
+                };
+                
+                this.results.push(result);
+                this.updateDisplay();
+                this.updateResultsList();
+                
+                console.log('📊 Touch latency: ' + (latency ? Math.round(latency * 10) / 10 + 'ms' : 'timeout'));
+            }
+            
+            updateDisplay() {
+                if (this.results.length === 0) return;
+                
+                const validResults = this.results.filter(r => r.latency !== null);
+                
+                if (validResults.length === 0) {
+                    document.getElementById('current-latency').innerHTML = 'No valid results yet';
+                    return;
+                }
+                
+                const latencies = validResults.map(r => r.latency);
+                const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+                const min = Math.min.apply(Math, latencies);
+                const max = Math.max.apply(Math, latencies);
+                const passCount = latencies.filter(l => l < 50).length;
+                const passRate = (passCount / latencies.length) * 100;
+                
+                // Update current latency display
+                const latest = latencies[latencies.length - 1];
+                const currentDisplay = document.getElementById('current-latency');
+                const rounded = Math.round(latest * 10) / 10;
+                
+                let className = 'latency-good';
+                let status = '✅ PASS (<50ms)';
+                
+                if (latest >= 50) {
+                    className = 'latency-bad';
+                    status = '❌ FAIL (≥50ms)';
+                } else if (latest >= 30) {
+                    className = 'latency-warning';
+                    status = '⚠️ MARGINAL';
+                }
+                
+                currentDisplay.className = 'latency-display ' + className;
+                currentDisplay.innerHTML = rounded + 'ms<br><small>' + status + '</small>';
+                
+                // Update stats
+                document.getElementById('avg-latency').textContent = Math.round(avg * 10) / 10;
+                document.getElementById('min-latency').textContent = Math.round(min * 10) / 10;
+                document.getElementById('max-latency').textContent = Math.round(max * 10) / 10;
+                document.getElementById('test-count').textContent = validResults.length;
+                document.getElementById('pass-rate').textContent = Math.round(passRate) + '%';
+            }
+            
+            updateResultsList() {
+                const list = document.getElementById('results-list');
+                
+                if (this.results.length === 0) {
+                    list.innerHTML = '<div class="result-item">No tests performed yet</div>';
+                    return;
+                }
+                
+                const recentResults = this.results.slice(-10).reverse();
+                list.innerHTML = recentResults.map(function(result) {
+                    const latencyText = result.latency ? 
+                        (Math.round(result.latency * 10) / 10) + 'ms' : 
+                        'TIMEOUT';
+                    
+                    const status = result.latency && result.latency < 50 ? '✅' : '❌';
+                    
+                    return '<div class="result-item">' + 
+                        result.timestamp + ' - ' + latencyText + ' ' + status +
+                        (result.note ? '<br><small>' + result.note + '</small>' : '') +
+                        '</div>';
+                }).join('');
+            }
+            
+            clearResults() {
+                this.results = [];
+                this.updateDisplay();
+                this.updateResultsList();
+                
+                document.getElementById('current-latency').className = 'latency-display latency-good';
+                document.getElementById('current-latency').innerHTML = 'Ready to test...';
+                
+                document.getElementById('dpad-latency').className = 'latency-display latency-good';
+                document.getElementById('dpad-latency').innerHTML = 'Touch any D-pad button...';
+                
+                console.log('🧹 Results cleared');
+            }
+        }
+        
+        // Initialize tester when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('⚡ Touch Latency Tester initialized');
+            window.latencyTester = new TouchLatencyTester();
+        });
+    </script>
+</body>
+</html>

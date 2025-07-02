@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Automated Ladder Test - Hop Hop Puff</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+            font-family: monospace;
+        }
+        
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #87CEEB;
+        }
+        
+        .status-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            min-width: 300px;
+            z-index: 1000;
+        }
+        
+        .test-log {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warning { color: #ffaa00; }
+        .info { color: #00aaff; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🤖 AUTOMATED LADDER CLIMBING TEST</h1>
+        <p>This test runs completely automatically. Puffy will attempt to reach the goal at the top of the ladder.</p>
+        
+        <!-- Game Container -->
+        <div id="game-container"></div>
+        
+        <!-- Status Panel -->
+        <div class="status-panel">
+            <h3>🤖 AI Test Status</h3>
+            <div>Phase: <span id="status-phase">Initializing</span></div>
+            <div>Puffy Position: <span id="status-position">Unknown</span></div>
+            <div>Distance to Ladder: <span id="status-ladder-dist">Unknown</span></div>
+            <div>On Ladder: <span id="status-on-ladder">false</span></div>
+            <div>Distance to Goal: <span id="status-goal-dist">Unknown</span></div>
+            <div>Test Result: <span id="status-result">Running...</span></div>
+        </div>
+        
+        <!-- Test Log -->
+        <div class="test-log" id="test-log">
+            <div class="info">🤖 Starting automated ladder climbing test...</div>
+        </div>
+    </div>
+
+    <!-- Phaser.js -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    
+    <!-- Puffy Sprite System -->
+    <script src="game/sprites/PuffySprite.js"></script>
+    
+    <!-- Automated Test -->
+    <script>
+        class AutomatedLadderTest {
+            constructor() {
+                this.game = null;
+                this.testPhase = 'initializing';
+                this.testResult = 'running';
+                this.startTime = Date.now();
+                this.maxTestTime = 30000; // 30 seconds max
+                
+                // Test state
+                this.puffy = null;
+                this.ladder = null;
+                this.goal = null;
+                this.isOnLadder = false;
+                this.goalReached = false;
+                
+                this.init();
+            }
+            
+            init() {
+                this.log('🤖 Initializing automated test...', 'info');
+                
+                const config = {
+                    type: Phaser.AUTO,
+                    width: 800,
+                    height: 600,
+                    parent: 'game-container',
+                    backgroundColor: '#87CEEB',
+                    
+                    physics: {
+                        default: 'arcade',
+                        arcade: {
+                            gravity: { y: 300 },
+                            debug: true
+                        }
+                    },
+                    
+                    scene: [AutoTestScene]
+                };
+                
+                this.game = new Phaser.Game(config);
+                this.startStatusUpdates();
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logDiv = document.getElementById('test-log');
+                const logEntry = document.createElement('div');
+                logEntry.className = type;
+                logEntry.innerHTML = `[${timestamp}] ${message}`;
+                logDiv.appendChild(logEntry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+                
+                console.log(`[AUTO-TEST] ${message}`);
+            }
+            
+            updateStatus() {
+                const scene = this.game?.scene?.scenes[0];
+                if (!scene) return;
+                
+                document.getElementById('status-phase').textContent = this.testPhase;
+                
+                if (scene.puffy && scene.puffy.sprite) {
+                    const pos = `(${Math.round(scene.puffy.sprite.x)}, ${Math.round(scene.puffy.sprite.y)})`;
+                    document.getElementById('status-position').textContent = pos;
+                    
+                    // Distance to ladder
+                    if (scene.ladderInfo) {
+                        const dist = Phaser.Math.Distance.Between(
+                            scene.puffy.sprite.x, scene.puffy.sprite.y,
+                            scene.ladderInfo.x, scene.ladderInfo.y
+                        );
+                        document.getElementById('status-ladder-dist').textContent = Math.round(dist) + 'px';
+                    }
+                    
+                    // Distance to goal
+                    if (scene.goalSprite) {
+                        const dist = Phaser.Math.Distance.Between(
+                            scene.puffy.sprite.x, scene.puffy.sprite.y,
+                            scene.goalSprite.x, scene.goalSprite.y
+                        );
+                        document.getElementById('status-goal-dist').textContent = Math.round(dist) + 'px';
+                    }
+                }
+                
+                document.getElementById('status-on-ladder').textContent = scene.isOnLadder || false;
+                document.getElementById('status-result').textContent = this.testResult;
+                
+                // Check for timeout
+                if (Date.now() - this.startTime > this.maxTestTime) {
+                    this.testResult = 'TIMEOUT';
+                    this.log('❌ Test timed out after 30 seconds', 'error');
+                }
+            }
+            
+            startStatusUpdates() {
+                setInterval(() => {
+                    this.updateStatus();
+                }, 100);
+            }
+        }
+        
+        class AutoTestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'AutoTestScene' });
+                this.puffy = null;
+                this.platforms = null;
+                this.ladders = null;
+                this.ladderInfo = null;
+                this.goalSprite = null;
+                this.isOnLadder = false;
+                
+                // AI state machine
+                this.aiState = 'waiting_for_puffy';
+                this.aiTimer = 0;
+                this.stateStartTime = 0;
+                this.climbingStarted = false;
+            }
+            
+            preload() {
+                window.autoTest.log('📦 Loading test assets...', 'info');
+            }
+            
+            create() {
+                window.autoTest.log('🏗️ Creating test scene...', 'info');
+                
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                // Create simple test structure
+                this.createTestStructure();
+                
+                // Create Puffy
+                window.autoTest.log('🐱 Creating Puffy...', 'info');
+                this.puffy = new PuffySprite(this);
+                
+                // Monitor Puffy creation
+                const checkPuffyReady = () => {
+                    if (this.puffy.isReady) {
+                        window.autoTest.log('✅ Puffy is ready!', 'success');
+                        window.autoTest.log(`   Sprite: ${!!this.puffy.sprite}`, 'info');
+                        window.autoTest.log(`   Body: ${!!this.puffy.body}`, 'info');
+                        window.autoTest.log(`   Speed: ${this.puffy.speed}`, 'info');
+                        
+                        // Test if we can access physics body directly
+                        if (this.puffy.sprite.body) {
+                            window.autoTest.log(`   Initial Gravity: ${this.puffy.sprite.body.gravity.y}`, 'info');
+                            window.autoTest.log(`   Initial Velocity: (${this.puffy.sprite.body.velocity.x}, ${this.puffy.sprite.body.velocity.y})`, 'info');
+                        }
+                    } else {
+                        window.autoTest.log('⏳ Waiting for Puffy to be ready...', 'warning');
+                        setTimeout(checkPuffyReady, 500);
+                    }
+                };
+                setTimeout(checkPuffyReady, 100);
+                
+                // Set up collision detection after Puffy is ready
+                this.time.delayedCall(2000, () => {
+                    this.setupTestCollision();
+                    this.startAI();
+                });
+                
+                // Instructions
+                this.add.text(width * 0.5, 30, '🤖 AUTOMATED LADDER TEST', {
+                    fontSize: '24px',
+                    color: '#000080',
+                    align: 'center',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+                
+                this.add.text(width * 0.5, 60, 'AI is controlling Puffy to reach the goal', {
+                    fontSize: '16px',
+                    color: '#000080',
+                    align: 'center'
+                }).setOrigin(0.5);
+            }
+            
+            createTestStructure() {
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                this.platforms = this.physics.add.staticGroup();
+                this.ladders = this.physics.add.staticGroup();
+                
+                // Bottom platform (starting position)
+                const bottomPlatform = this.add.rectangle(width * 0.5, height - 50, width * 0.8, 20, 0x8b4513);
+                bottomPlatform.setStrokeStyle(2, 0x654321);
+                this.physics.add.existing(bottomPlatform, true);
+                this.platforms.add(bottomPlatform);
+                
+                // Top platform (goal platform)
+                const topPlatform = this.add.rectangle(width * 0.5, height - 400, width * 0.6, 20, 0x8b4513);
+                topPlatform.setStrokeStyle(2, 0x654321);
+                this.physics.add.existing(topPlatform, true);
+                this.platforms.add(topPlatform);
+                
+                // Create ONE SIMPLE LADDER - RECTANGLE extending BEYOND TOP + 33% extension
+                const ladderX = width * 0.5;
+                const baseLadderBottomY = height - 50;
+                const baseLadderTopY = -50; // BEYOND TOP of screen to ensure coverage
+                const baseLadderHeight = baseLadderBottomY - baseLadderTopY;
+                
+                // Extend by 33% in both directions
+                const extension = baseLadderHeight * 0.33;
+                const ladderBottomY = baseLadderBottomY + (extension / 2);
+                const ladderTopY = baseLadderTopY - (extension / 2);
+                const ladderHeight = ladderBottomY - ladderTopY;
+                const ladderCenterY = (ladderBottomY + ladderTopY) / 2;
+                
+                // Visual ladder
+                const visualLadder = this.add.rectangle(ladderX, ladderCenterY, 20, ladderHeight, 0xFFD700);
+                visualLadder.setStrokeStyle(4, 0xFFA500);
+                
+                // Ladder collision zone - RECTANGLE: narrow width, FULL HEIGHT to very top
+                const ladderZone = this.physics.add.sprite(ladderX, ladderCenterY, null);
+                ladderZone.setVisible(false);
+                ladderZone.body.setSize(30, ladderHeight); // NARROW: 30px width, FULL height to top
+                ladderZone.setImmovable(true);
+                this.ladders.add(ladderZone);
+                
+                // Store ladder info
+                this.ladderInfo = {
+                    x: ladderX,
+                    y: ladderCenterY,
+                    bottom: ladderBottomY,
+                    top: ladderTopY,
+                    zone: ladderZone
+                };
+                
+                // Create GOAL at VERY TOP - LARGE for easy collision
+                const goalY = 40; // VERY TOP of screen
+                this.goalSprite = this.add.circle(width * 0.5, goalY, 30, 0x00FF00); // LARGER: 30px radius
+                this.goalSprite.setStrokeStyle(4, 0x00AA00);
+                this.physics.add.existing(this.goalSprite, true);
+                this.goalSprite.body.setSize(80, 80); // LARGE collision area
+                
+                // Goal label
+                this.add.text(width * 0.5, goalY, '🎯\nGOAL', {
+                    fontSize: '16px',
+                    color: '#00AA00',
+                    align: 'center',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+                
+                window.autoTest.log(`🪜 Created extended ladder (+33%) from ${ladderBottomY} to ${ladderTopY}`, 'info');
+                window.autoTest.log(`🎯 Goal created at VERY TOP (${width * 0.5}, ${goalY})`, 'info');
+            }
+            
+            setupTestCollision() {
+                if (!this.puffy || !this.puffy.isReady) {
+                    window.autoTest.log('⏳ Puffy not ready, retrying collision setup...', 'warning');
+                    this.time.delayedCall(1000, () => this.setupTestCollision());
+                    return;
+                }
+                
+                window.autoTest.log('🎯 Setting up collision detection...', 'info');
+                
+                // Platform collision
+                this.physics.add.collider(this.puffy.sprite, this.platforms);
+                
+                // Ladder detection
+                this.physics.add.overlap(this.puffy.sprite, this.ladders, (puffy, ladder) => {
+                    this.onLadderDetected();
+                });
+                
+                // Goal detection
+                this.physics.add.overlap(this.puffy.sprite, this.goalSprite, (puffy, goal) => {
+                    this.onGoalReached();
+                });
+                
+                window.autoTest.log('✅ Collision detection ready!', 'success');
+            }
+            
+            startAI() {
+                if (!this.puffy || !this.puffy.isReady) {
+                    window.autoTest.log('⏳ Waiting for Puffy to be ready...', 'warning');
+                    this.time.delayedCall(1000, () => this.startAI());
+                    return;
+                }
+                
+                // Position Puffy at starting position
+                this.puffy.sprite.setPosition(200, this.cameras.main.height - 100);
+                window.autoTest.log('🤖 AI taking control of Puffy!', 'info');
+                window.autoTest.testPhase = 'moving_to_ladder';
+                this.aiState = 'move_to_ladder';
+                this.stateStartTime = this.time.now;
+            }
+            
+            onLadderDetected() {
+                if (!this.isOnLadder) {
+                    this.isOnLadder = true;
+                    window.autoTest.log('🪜 LADDER DETECTED! Attempting to climb...', 'success');
+                    
+                    // Debug Puffy state before changes
+                    if (this.puffy && this.puffy.sprite && this.puffy.sprite.body) {
+                        window.autoTest.log(`🔍 BEFORE LADDER CHANGES:`, 'info');
+                        window.autoTest.log(`   Puffy.isReady: ${this.puffy.isReady}`, 'info');
+                        window.autoTest.log(`   Position: (${this.puffy.sprite.x}, ${this.puffy.sprite.y})`, 'info');
+                        window.autoTest.log(`   Velocity: (${this.puffy.sprite.body.velocity.x}, ${this.puffy.sprite.body.velocity.y})`, 'info');
+                        window.autoTest.log(`   Gravity: ${this.puffy.sprite.body.gravity.y}`, 'info');
+                        window.autoTest.log(`   Body exists: ${!!this.puffy.sprite.body}`, 'info');
+                        
+                        // Set floating gravity immediately
+                        this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                        this.puffy.sprite.body.setVelocityY(0);
+                        
+                        // Verify changes took effect
+                        setTimeout(() => {
+                            window.autoTest.log(`🔍 AFTER LADDER CHANGES:`, 'info');
+                            window.autoTest.log(`   Gravity: ${this.puffy.sprite.body.gravity.y}`, 'info');
+                            window.autoTest.log(`   Velocity: (${this.puffy.sprite.body.velocity.x}, ${this.puffy.sprite.body.velocity.y})`, 'info');
+                        }, 50);
+                        
+                        window.autoTest.log(`🪜 Gravity cancellation attempted`, 'info');
+                    } else {
+                        window.autoTest.log(`❌ CRITICAL: Cannot cancel gravity - Puffy components missing!`, 'error');
+                        window.autoTest.log(`   puffy: ${!!this.puffy}`, 'error');
+                        window.autoTest.log(`   puffy.sprite: ${!!this.puffy?.sprite}`, 'error');
+                        window.autoTest.log(`   puffy.body: ${!!this.puffy?.body}`, 'error');
+                        window.autoTest.log(`   puffy.isReady: ${this.puffy?.isReady}`, 'error');
+                    }
+                }
+            }
+            
+            onGoalReached() {
+                if (!window.autoTest.goalReached) {
+                    window.autoTest.goalReached = true;
+                    window.autoTest.testResult = 'SUCCESS!';
+                    window.autoTest.testPhase = 'goal_reached';
+                    window.autoTest.log('🎯 SUCCESS! Goal reached!', 'success');
+                    
+                    // Stop Puffy
+                    if (this.puffy && this.puffy.sprite.body) {
+                        this.puffy.sprite.body.setVelocity(0, 0);
+                    }
+                }
+            }
+            
+            update() {
+                if (!this.puffy || !this.puffy.isReady || window.autoTest.goalReached) return;
+                
+                this.aiTimer += this.game.loop.delta;
+                
+                // Check ladder proximity continuously - use BOTTOM of Puffy's body
+                if (this.ladderInfo && this.puffy.sprite) {
+                    const puffyBottomX = this.puffy.sprite.x;
+                    const puffyBottomY = this.puffy.sprite.y + (this.puffy.sprite.displayHeight / 2);
+                    
+                    const distToLadder = Phaser.Math.Distance.Between(
+                        puffyBottomX, puffyBottomY,
+                        this.ladderInfo.x, this.ladderInfo.y
+                    );
+                    
+                    // Ladder detection (NARROW range to match visual)
+                    if (distToLadder < 25 && !this.isOnLadder) {
+                        this.onLadderDetected();
+                    } else if (distToLadder > 30 && this.isOnLadder) {
+                        this.isOnLadder = false;
+                        this.puffy.sprite.body.setGravityY(300); // Restore gravity
+                        window.autoTest.log('🪜 Exited ladder zone', 'warning');
+                    }
+                }
+                
+                // AI State Machine
+                switch (this.aiState) {
+                    case 'move_to_ladder':
+                        this.aiMoveToLadder();
+                        break;
+                        
+                    case 'climb_ladder':
+                        this.aiClimbLadder();
+                        break;
+                        
+                    case 'move_to_goal':
+                        // AI has reached top of ladder, now move horizontally to goal
+                        this.puffy.sprite.body.setGravityY(300); // Restore normal gravity
+                        
+                        // Calculate direction to goal
+                        const goalX = this.goalSprite.x;
+                        const puffyX = this.puffy.sprite.x;
+                        const puffyY = this.puffy.sprite.y;
+                        const goalY = this.goalSprite.y;
+                        const distanceToGoal = Math.abs(goalX - puffyX);
+                        
+                        // Log current status every 500ms
+                        if (this.aiTimer % 500 < 16) {
+                            window.autoTest.log(`🎯 GOAL SEEKING: Puffy(${Math.round(puffyX)}, ${Math.round(puffyY)}) → Goal(${Math.round(goalX)}, ${Math.round(goalY)}) dist=${Math.round(distanceToGoal)}`, 'info');
+                        }
+                        
+                        if (distanceToGoal < 30) {
+                            // Close enough - let collision detection handle success
+                            this.puffy.sprite.body.setVelocity(0, 0);
+                            window.autoTest.log('🎯 At goal position - waiting for collision...', 'success');
+                            
+                            // Extra check: are we overlapping with goal?
+                            const totalDistance = Phaser.Math.Distance.Between(puffyX, puffyY, goalX, goalY);
+                            if (totalDistance < 25) {
+                                window.autoTest.log('🎯 MANUALLY TRIGGERING SUCCESS - very close to goal!', 'success');
+                                this.onGoalReached();
+                            }
+                        } else {
+                            // Move toward goal
+                            const speed = 80;
+                            if (puffyX < goalX) {
+                                this.puffy.sprite.body.setVelocityX(speed);
+                                this.puffy.playAnimation('walk_right');
+                                window.autoTest.log('🎯 Moving RIGHT toward goal', 'info');
+                            } else {
+                                this.puffy.sprite.body.setVelocityX(-speed);
+                                this.puffy.playAnimation('walk_left');
+                                window.autoTest.log('🎯 Moving LEFT toward goal', 'info');
+                            }
+                            this.puffy.sprite.body.setVelocityY(0);
+                        }
+                        
+                        // Timeout check
+                        if (this.time.now - this.stateStartTime > 5000) {
+                            window.autoTest.log('⚠️ Goal not reached after 5 seconds - test failed', 'error');
+                            this.aiState = 'failed';
+                            this.stateStartTime = this.time.now;
+                        }
+                        break;
+                        
+                    case 'failed':
+                        if (this.time.now - this.stateStartTime > 2000) {
+                            window.autoTest.testResult = 'FAILED';
+                            window.autoTest.log('❌ Test failed - resetting...', 'error');
+                            this.climbingStarted = false;
+                            this.aiState = 'move_to_ladder';
+                            this.stateStartTime = this.time.now;
+                        }
+                        break;
+                }
+                
+                // AGGRESSIVELY maintain ladder climbing physics
+                if (this.isOnLadder && this.puffy.sprite.body) {
+                    // Prevent main game from interfering
+                    this.isMoving = false;
+                    
+                    // Check if gravity is being reset by something else
+                    const currentGravity = this.puffy.sprite.body.gravity.y;
+                    if (currentGravity !== 0) {
+                        window.autoTest.log(`🚨 GRAVITY OVERRIDE DETECTED! Was: ${currentGravity}, resetting to 0 (floating)`, 'warning');
+                    }
+                    this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                    
+                    // Check if velocity is being reset by something else - AGGRESSIVE
+                    const currentVelY = this.puffy.sprite.body.velocity.y;
+                    if (this.aiState === 'climb_ladder' && currentVelY >= -50) { // Should be climbing up FAST
+                        window.autoTest.log(`🚨 VELOCITY OVERRIDE DETECTED! Was: ${currentVelY}, resetting to -200`, 'warning');
+                        this.puffy.sprite.body.setVelocityY(-200); // FAST climbing
+                        this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                    }
+                    
+                    // Also check velocity every few frames
+                    if (this.aiTimer % 500 < 16) { // Log every 500ms
+                        window.autoTest.log(`📊 LADDER STATE: pos(${Math.round(this.puffy.sprite.x)}, ${Math.round(this.puffy.sprite.y)}) vel(${Math.round(this.puffy.sprite.body.velocity.x)}, ${Math.round(this.puffy.sprite.body.velocity.y)}) grav(${this.puffy.sprite.body.gravity.y}) isMoving(${this.isMoving})`, 'info');
+                    }
+                }
+            }
+            
+            aiMoveToLadder() {
+                if (!this.puffy.sprite || !this.ladderInfo) return;
+                
+                const puffyX = this.puffy.sprite.x;
+                const ladderX = this.ladderInfo.x;
+                const distance = Math.abs(puffyX - ladderX);
+                
+                if (distance < 20) {
+                    // Close enough to ladder, start climbing
+                    window.autoTest.log('🤖 Reached ladder, starting climb...', 'info');
+                    window.autoTest.testPhase = 'climbing_ladder';
+                    this.aiState = 'climb_ladder';
+                    this.stateStartTime = this.time.now;
+                    this.puffy.sprite.body.setVelocityX(0);
+                } else {
+                    // Move toward ladder
+                    const speed = 80;
+                    if (puffyX < ladderX) {
+                        this.puffy.sprite.body.setVelocityX(speed);
+                        this.puffy.playAnimation('walk_right');
+                    } else {
+                        this.puffy.sprite.body.setVelocityX(-speed);
+                        this.puffy.playAnimation('walk_left');
+                    }
+                }
+            }
+            
+            aiClimbLadder() {
+                if (!this.puffy.sprite || !this.puffy.sprite.body) {
+                    window.autoTest.log('❌ aiClimbLadder: Puffy sprite or body missing', 'error');
+                    return;
+                }
+                
+                if (this.isOnLadder) {
+                    // Only log detailed state once when climbing starts
+                    if (!this.climbingStarted) {
+                        this.climbingStarted = true;
+                        window.autoTest.log('🪜 AI STARTING TO CLIMB!', 'info');
+                        window.autoTest.log(`🔍 CLIMB START STATE:`, 'info');
+                        window.autoTest.log(`   Position: (${this.puffy.sprite.x}, ${this.puffy.sprite.y})`, 'info');
+                        window.autoTest.log(`   Velocity: (${this.puffy.sprite.body.velocity.x}, ${this.puffy.sprite.body.velocity.y})`, 'info');
+                        window.autoTest.log(`   Gravity: ${this.puffy.sprite.body.gravity.y}`, 'info');
+                    }
+                    
+                    // 🔧 CRITICAL FIX: Prevent main game from interfering with AI movement
+                    this.isMoving = false;
+                    
+                    // Apply climbing physics every frame - FAST CLIMBING
+                    this.puffy.sprite.body.setGravityY(0); // Zero gravity = floating
+                    this.puffy.sprite.body.setVelocityY(-200); // MUCH FASTER climb speed
+                    this.puffy.sprite.body.setVelocityX(0);
+                    
+                    // Set animation
+                    try {
+                        this.puffy.playAnimation('walk_up');
+                    } catch (e) {
+                        // Ignore animation errors
+                    }
+                    
+                    // Check if we've reached the VERY TOP (goal area) - AGGRESSIVE THRESHOLD
+                    if (this.puffy.sprite.y < 120) { // More generous threshold
+                        window.autoTest.log(`🎯 Reached VERY TOP! Position: (${Math.round(this.puffy.sprite.x)}, ${Math.round(this.puffy.sprite.y)})`, 'success');
+                        window.autoTest.log(`🎯 Switching to goal-seeking mode`, 'success');
+                        this.aiState = 'move_to_goal';
+                        this.stateStartTime = this.time.now;
+                        this.climbingStarted = false; // Reset climbing flag
+                        return;
+                    }
+                    
+                    // Debug current climbing progress
+                    if (this.aiTimer % 1000 < 16) { // Log every second during climbing
+                        window.autoTest.log(`🪜 CLIMBING: Y=${Math.round(this.puffy.sprite.y)}, target<80, vel=${Math.round(this.puffy.sprite.body.velocity.y)}`, 'info');
+                    }
+                    
+                    // Check if we've been climbing too long
+                    if (this.time.now - this.stateStartTime > 8000) {
+                        window.autoTest.log('⏰ Climbing timeout, marking as failed', 'error');
+                        this.aiState = 'failed';
+                        this.stateStartTime = this.time.now;
+                    }
+                } else {
+                    // Not on ladder, try to get back on it
+                    window.autoTest.log('🔄 Not on ladder, repositioning...', 'warning');
+                    this.climbingStarted = false;
+                    this.aiState = 'move_to_ladder';
+                    this.stateStartTime = this.time.now;
+                }
+            }
+        }
+        
+        // Start the automated test
+        window.autoTest = new AutomatedLadderTest();
+    </script>
+</body>
+</html> 

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Mobile Joystick Test - Hop Hop Puff</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #2D1B69 0%, #1a0f3a 100%);
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            touch-action: manipulation;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .test-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .test-header {
+            text-align: center;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .test-area {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .puffy-indicator {
+            width: 48px;
+            height: 48px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #fff;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .status-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        /* Virtual Joystick - Same as main game */
+        #mobile-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 180px;
+            pointer-events: none;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        #virtual-joystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+        
+        #joystick-base {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, rgba(0, 255, 255, 0.1) 70%, transparent 100%);
+            border: 3px solid rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        #joystick-knob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.8) 0%, rgba(0, 255, 255, 0.6) 70%);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        
+        #joystick-knob:active,
+        #joystick-knob.dragging {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+        
+        #jump-button-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            pointer-events: auto;
+        }
+        
+        .jump-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 102, 0, 0.8) 0%, rgba(255, 102, 0, 0.6) 70%);
+            border: 3px solid #ff6600;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(255, 102, 0, 0.4);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        
+        .jump-btn:active,
+        .jump-btn.pressed {
+            transform: scale(0.95);
+            box-shadow: 0 0 30px rgba(255, 102, 0, 0.8);
+            background: radial-gradient(circle, rgba(255, 102, 0, 1) 0%, rgba(255, 102, 0, 0.8) 70%);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🕹️ Virtual Joystick Test</h1>
+            <p>Test the new mobile joystick for Hop Hop Puff</p>
+        </div>
+        
+        <div class="test-area">
+            <div class="puffy-indicator" id="puffy">🐱</div>
+            
+            <div class="status-display" id="status">
+                Joystick: Inactive<br>
+                X: 0.00, Y: 0.00<br>
+                Direction: None<br>
+                Jump: No
+            </div>
+        </div>
+    </div>
+    
+    <!-- Virtual Joystick -->
+    <div id="mobile-controls">
+        <div id="virtual-joystick">
+            <div id="joystick-base"></div>
+            <div id="joystick-knob"></div>
+        </div>
+        
+        <div id="jump-button-container">
+            <button id="jump-btn" class="jump-btn">JUMP</button>
+        </div>
+    </div>
+    
+    <script>
+        class JoystickTest {
+            constructor() {
+                this.joystickState = {
+                    active: false,
+                    x: 0,
+                    y: 0,
+                    centerX: 0,
+                    centerY: 0,
+                    maxDistance: 35
+                };
+                
+                this.puffyPos = { x: 0, y: 0 };
+                this.isJumping = false;
+                
+                this.setupJoystick();
+                this.setupJumpButton();
+                this.updateDisplay();
+                
+                console.log('🕹️ Joystick test initialized');
+            }
+            
+            setupJoystick() {
+                const joystickBase = document.getElementById('joystick-base');
+                const joystickKnob = document.getElementById('joystick-knob');
+                
+                const updateJoystickCenter = () => {
+                    const rect = joystickBase.getBoundingClientRect();
+                    this.joystickState.centerX = rect.left + rect.width / 2;
+                    this.joystickState.centerY = rect.top + rect.height / 2;
+                };
+                
+                updateJoystickCenter();
+                window.addEventListener('resize', updateJoystickCenter);
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(updateJoystickCenter, 200);
+                });
+                
+                const handleTouchStart = (e) => {
+                    e.preventDefault();
+                    this.joystickState.active = true;
+                    joystickKnob.classList.add('dragging');
+                    updateJoystickCenter();
+                    
+                    // Haptic feedback
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(30);
+                    }
+                };
+                
+                const handleTouchMove = (e) => {
+                    if (!this.joystickState.active) return;
+                    e.preventDefault();
+                    
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - this.joystickState.centerX;
+                    const deltaY = touch.clientY - this.joystickState.centerY;
+                    
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const limitedDistance = Math.min(distance, this.joystickState.maxDistance);
+                    const angle = Math.atan2(deltaY, deltaX);
+                    
+                    const finalX = Math.cos(angle) * limitedDistance;
+                    const finalY = Math.sin(angle) * limitedDistance;
+                    
+                    joystickKnob.style.transform = `translate(calc(-50% + ${finalX}px), calc(-50% + ${finalY}px))`;
+                    
+                    this.joystickState.x = finalX / this.joystickState.maxDistance;
+                    this.joystickState.y = finalY / this.joystickState.maxDistance;
+                    
+                    this.updateMovement();
+                };
+                
+                const handleTouchEnd = (e) => {
+                    e.preventDefault();
+                    this.joystickState.active = false;
+                    joystickKnob.classList.remove('dragging');
+                    
+                    joystickKnob.style.transform = 'translate(-50%, -50%)';
+                    
+                    this.joystickState.x = 0;
+                    this.joystickState.y = 0;
+                    
+                    this.updateMovement();
+                };
+                
+                joystickKnob.addEventListener('touchstart', handleTouchStart, { passive: false });
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                document.addEventListener('touchend', handleTouchEnd, { passive: false });
+                
+                // Mouse events for desktop testing
+                joystickKnob.addEventListener('mousedown', handleTouchStart);
+                document.addEventListener('mousemove', (e) => {
+                    if (!this.joystickState.active) return;
+                    
+                    const deltaX = e.clientX - this.joystickState.centerX;
+                    const deltaY = e.clientY - this.joystickState.centerY;
+                    
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const limitedDistance = Math.min(distance, this.joystickState.maxDistance);
+                    const angle = Math.atan2(deltaY, deltaX);
+                    
+                    const finalX = Math.cos(angle) * limitedDistance;
+                    const finalY = Math.sin(angle) * limitedDistance;
+                    
+                    joystickKnob.style.transform = `translate(calc(-50% + ${finalX}px), calc(-50% + ${finalY}px))`;
+                    
+                    this.joystickState.x = finalX / this.joystickState.maxDistance;
+                    this.joystickState.y = finalY / this.joystickState.maxDistance;
+                    
+                    this.updateMovement();
+                });
+                
+                document.addEventListener('mouseup', handleTouchEnd);
+            }
+            
+            setupJumpButton() {
+                const jumpBtn = document.getElementById('jump-btn');
+                
+                jumpBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    jumpBtn.classList.add('pressed');
+                    this.handleJump();
+                }, { passive: false });
+                
+                jumpBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    jumpBtn.classList.remove('pressed');
+                    this.isJumping = false;
+                    this.updateDisplay();
+                }, { passive: false });
+                
+                jumpBtn.addEventListener('mousedown', (e) => {
+                    jumpBtn.classList.add('pressed');
+                    this.handleJump();
+                });
+                
+                jumpBtn.addEventListener('mouseup', (e) => {
+                    jumpBtn.classList.remove('pressed');
+                    this.isJumping = false;
+                    this.updateDisplay();
+                });
+            }
+            
+            handleJump() {
+                this.isJumping = true;
+                
+                // Haptic feedback
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+                
+                // Simulate jump animation
+                const puffy = document.getElementById('puffy');
+                puffy.style.transform = 'translate(-50%, -70%)';
+                setTimeout(() => {
+                    puffy.style.transform = 'translate(-50%, -50%)';
+                }, 300);
+                
+                this.updateDisplay();
+            }
+            
+            updateMovement() {
+                const deadZone = 0.2;
+                
+                if (Math.abs(this.joystickState.x) > deadZone) {
+                    this.puffyPos.x += this.joystickState.x * 3; // Movement speed
+                }
+                
+                // Constrain to test area
+                this.puffyPos.x = Math.max(-200, Math.min(200, this.puffyPos.x));
+                
+                // Update puffy position
+                const puffy = document.getElementById('puffy');
+                puffy.style.transform = `translate(calc(-50% + ${this.puffyPos.x}px), -50%)`;
+                
+                this.updateDisplay();
+            }
+            
+            updateDisplay() {
+                const status = document.getElementById('status');
+                const direction = this.getDirection();
+                
+                status.innerHTML = `
+                    Joystick: ${this.joystickState.active ? 'Active' : 'Inactive'}<br>
+                    X: ${this.joystickState.x.toFixed(2)}, Y: ${this.joystickState.y.toFixed(2)}<br>
+                    Direction: ${direction}<br>
+                    Jump: ${this.isJumping ? 'Yes' : 'No'}
+                `;
+            }
+            
+            getDirection() {
+                const deadZone = 0.2;
+                const x = this.joystickState.x;
+                const y = this.joystickState.y;
+                
+                if (Math.abs(x) < deadZone && Math.abs(y) < deadZone) {
+                    return 'None';
+                }
+                
+                let direction = '';
+                
+                if (y < -deadZone) direction += 'Up ';
+                if (y > deadZone) direction += 'Down ';
+                if (x < -deadZone) direction += 'Left ';
+                if (x > deadZone) direction += 'Right ';
+                
+                return direction.trim() || 'None';
+            }
+        }
+        
+        // Initialize test when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.joystickTest = new JoystickTest();
+        });
+    </script>
+</body>
+</html> 

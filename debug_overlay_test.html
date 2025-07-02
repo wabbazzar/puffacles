@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puffy Birthday Overlay Debug</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    html, body { background: #222; margin: 0; padding: 0; height: 100%; }
+    body { width: 100vw; height: 100vh; overflow: hidden; }
+    #phaser-debug-overlay { width: 100vw; height: 100vh; display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: '#222',
+      parent: document.body,
+      scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: {
+        preload: preload,
+        create: create
+      }
+    };
+    let overlayScreen = {};
+    function preload() {
+      this.load.image('puffy_winks', 'assets/puffy_winks.png');
+    }
+    function create() {
+      const width = this.sys.game.config.width;
+      const height = this.sys.game.config.height;
+      // Overlay sizing
+      const overlayW = Math.min(width * 0.95, 400);
+      const overlayPad = width < 500 ? 18 : 40;
+      const overlayX = width / 2;
+      const overlayY = height / 2;
+      // Overlay background
+      const overlayBg = this.add.rectangle(overlayX, overlayY, overlayW, height < 500 ? 320 : 380, 0x000000, 0.85)
+        .setOrigin(0.5).setDepth(100).setStrokeStyle(2, 0xffffff);
+      // Title
+      const titleY = overlayY - (height < 500 ? 100 : 120) + overlayPad;
+      const title = this.add.text(overlayX, titleY, "You're invited to Puffy's Birthday", {
+        fontFamily: 'Playfair Display, Georgia, serif',
+        fontSize: width < 500 ? '20px' : '32px',
+        color: '#FFD700',
+        fontStyle: 'bold',
+        align: 'center',
+        stroke: '#8B4513',
+        strokeThickness: 3,
+        shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 4, fill: true },
+        wordWrap: { width: overlayW * 0.95, useAdvancedWrap: true },
+        fixedWidth: overlayW * 0.95
+      }).setOrigin(0.5).setDepth(102);
+      // Details
+      const detailsY = titleY + (width < 500 ? 44 : 60);
+      const detailsText = this.add.text(overlayX, detailsY, [
+        "When: July 3rd 7pm-10pm",
+        "Where: Puffy's house",
+        "What: Garden dinner + Puffy's favorite movie",
+        "",
+        "Can't wait to see you there! 🐱💕"
+      ], {
+        fontFamily: 'Playfair Display, Georgia, serif',
+        fontSize: width < 500 ? '14px' : '18px',
+        color: '#FFFFFF',
+        align: 'center',
+        lineSpacing: 10,
+        backgroundColor: 'rgba(139, 69, 19, 0.85)',
+        padding: { x: 18, y: 20 },
+        wordWrap: { width: overlayW * 0.95, useAdvancedWrap: true },
+        fixedWidth: overlayW * 0.95
+      }).setOrigin(0.5).setDepth(102);
+      // Puffy image below
+      const puffyY = detailsY + (width < 500 ? 90 : 110);
+      const puffyW = width < 500 ? 90 : 140;
+      if (!this.textures.exists('puffy_winks')) {
+        console.error('ERROR: puffy_winks asset is missing!');
+      } else {
+        console.log('DEBUG: puffy_winks asset found');
+      }
+      const puffy = this.add.image(overlayX, puffyY, 'puffy_winks');
+      puffy.setDisplaySize(puffyW, puffyW).setOrigin(0.5).setDepth(102);
+      puffy.setAlpha(1);
+      overlayScreen = { background: overlayBg, title, details: detailsText, puffy };
+      console.log('DEBUG: Overlay created');
+    }
+    window.addEventListener('resize', () => { window.location.reload(); });
+    new Phaser.Game(config);
+  </script>
+</body>
+</html> 

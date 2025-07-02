@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    
+    <!-- Cache-busting headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Mobile-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Hop Hop Puff">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="viewport-fit" content="cover">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <title>Puffy's Birthday</title>
+    
+    <!-- Open Graph Meta Tags for Link Preview -->
+    <meta property="og:title" content="Puffy's Birthday">
+    <meta property="og:description" content="You're invited to Puffy's Birthday!">
+    <meta property="og:image" content="assets/puffy.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://wabbazzar.github.io/puffys-birthday/">
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Puffy's Birthday">
+    <meta name="twitter:description" content="You're invited to Puffy's Birthday!">
+    <meta name="twitter:image" content="assets/puffy.png">
+    
+    <!-- Mobile-first styles -->
+    <link rel="stylesheet" href="styles/mobile.css">
+    <link rel="stylesheet" href="styles/desktop.css" media="(min-width: 768px)">
+    
+    <!-- Phaser.js -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <h1>🐱 Hop Hop Puff</h1>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <p id="loading-text">Loading assets...</p>
+        </div>
+    </div>
+
+    <!-- Mobile Header with Game Info -->
+    <div id="mobile-header" class="mobile-header">
+        <div class="game-info">
+            <span id="score-display">Score: 9000</span>
+            <span id="lives-display">Lives: 9</span>
+            <span id="timer-display">Time: 4:20</span>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="game-container">
+        <!-- Phaser game will be inserted here -->
+    </div>
+
+    <!-- Working Canvas Joystick Overlay -->
+    <canvas id="controls-canvas" class="controls-overlay"></canvas>
+
+    <!-- Desktop UI Panel (hidden on mobile) -->
+    <div id="desktop-ui" class="desktop-ui">
+        <div class="ui-panel">
+            <h3>🎮 Controls</h3>
+            <div class="control-group">
+                <h4>Movement</h4>
+                <p><kbd>A</kbd> <kbd>D</kbd> - Move left/right</p>
+                <p><kbd>W</kbd> - Jump</p>
+                <p><kbd>S</kbd> - Down</p>
+            </div>
+            <div class="control-group">
+                <h4>Game</h4>
+                <p><kbd>P</kbd> - Pause</p>
+                <p><kbd>ESC</kbd> - Menu</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game scripts -->
+    <script src="game/sprites/PuffySprite.js"></script>
+    <script src="game/main.js"></script>
+</body>
+</html> 

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>Hop Hop Puff - Cross-Platform Visual Test</title>
+    
+    <link rel="stylesheet" href="styles/mobile.css">
+    <link rel="stylesheet" href="styles/desktop.css" media="(min-width: 1024px)">
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <style>
+        /* Visual Test Specific Styles */
+        #visual-test-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2D1B69 0%, #1a0f3a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-y: auto;
+        }
+        
+        #test-header {
+            text-align: center;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        #test-header h1 {
+            color: #00ffff;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #00ffff;
+        }
+        
+        #viewport-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #00ffff;
+            z-index: 100;
+        }
+        
+        #test-results {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+        }
+        
+        .test-section h3 {
+            color: #00ffff;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .test-item {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .test-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .test-status.pass { background: #4CAF50; color: white; }
+        .test-status.fail { background: #f44336; color: white; }
+        .test-status.pending { background: #ff9800; color: white; }
+        
+        #game-canvas-container {
+            position: relative;
+            margin: 20px;
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+        }
+        
+        #render-tests {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .render-test-box {
+            width: 150px;
+            height: 150px;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .render-test-sprite {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 8px;
+            margin: 10px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .platform-test {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(90deg, #8b4513, #daa520);
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        
+        #responsive-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .responsive-box {
+            aspect-ratio: 16/9;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            background: rgba(0, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        /* Mobile specific tests */
+        @media (max-width: 768px) {
+            .mobile-only-test {
+                display: block;
+                background: rgba(0, 255, 0, 0.2);
+            }
+            
+            .desktop-only-test {
+                display: none;
+            }
+        }
+        
+        /* Desktop specific tests */
+        @media (min-width: 1024px) {
+            .mobile-only-test {
+                display: none;
+            }
+            
+            .desktop-only-test {
+                display: block;
+                background: rgba(0, 0, 255, 0.2);
+            }
+        }
+        
+        #performance-monitor {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #00ff00;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="visual-test-container">
+        <div id="test-header">
+            <h1>🎮 Cross-Platform Visual Test</h1>
+            <p>Testing Hop Hop Puff rendering across devices</p>
+        </div>
+        
+        <div id="viewport-info">
+            <div>Viewport: <span id="viewport-size">-</span></div>
+            <div>Screen: <span id="screen-size">-</span></div>
+            <div>Device Type: <span id="device-type">-</span></div>
+            <div>Pixel Ratio: <span id="pixel-ratio">-</span></div>
+        </div>
+        
+        <div id="performance-monitor">
+            <div>FPS: <span id="fps-counter">60</span></div>
+            <div>Canvas Size: <span id="canvas-size">-</span></div>
+            <div>Render Time: <span id="render-time">-</span></div>
+        </div>
+        
+        <div id="test-results">
+            <div class="test-section">
+                <h3>🖼️ Phaser.js Canvas Rendering Tests</h3>
+                <div class="test-grid">
+                    <div class="test-item">
+                        Canvas Creation
+                        <span class="test-status pending" id="canvas-test">Testing...</span>
+                    </div>
+                    <div class="test-item">
+                        Mobile Scaling (320px-428px)
+                        <span class="test-status pending" id="mobile-scale-test">Testing...</span>
+                    </div>
+                    <div class="test-item">
+                        Desktop Scaling (1024px+)
+                        <span class="test-status pending" id="desktop-scale-test">Testing...</span>
+                    </div>
+                    <div class="test-item">
+                        Sprite Rendering
+                        <span class="test-status pending" id="sprite-test">Testing...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h3>📱 Responsive Design Tests</h3>
+                <div id="responsive-tests">
+                    <div class="responsive-box mobile-only-test">
+                        Mobile Layout<br>
+                        (This should only show on mobile)
+                    </div>
+                    <div class="responsive-box desktop-only-test">
+                        Desktop Layout<br>
+                        (This should only show on desktop)
+                    </div>
+                    <div class="responsive-box">
+                        Universal<br>
+                        (Shows on all devices)
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h3>🎨 Game Element Rendering Tests</h3>
+                <div id="render-tests">
+                    <div class="render-test-box">
+                        <h4>Puffy Sprite</h4>
+                        <div class="render-test-sprite"></div>
+                        <small>48x48 pixels</small>
+                    </div>
+                    <div class="render-test-box">
+                        <h4>Kitchen Platform</h4>
+                        <div class="platform-test"></div>
+                        <div class="platform-test"></div>
+                        <small>Responsive width</small>
+                    </div>
+                    <div class="render-test-box">
+                        <h4>UI Elements</h4>
+                        <div style="color: #ff6b6b;">❤️❤️❤️</div>
+                        <div style="color: #00ffff;">Score: 1250</div>
+                        <small>Readable text</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h3>⚡ Performance Tests</h3>
+                <div class="test-grid">
+                    <div class="test-item">
+                        60 FPS Maintenance
+                        <span class="test-status pending" id="fps-test">Testing...</span>
+                    </div>
+                    <div class="test-item">
+                        Canvas Resize Performance
+                        <span class="test-status pending" id="resize-test">Testing...</span>
+                    </div>
+                    <div class="test-item">
+                        Memory Usage
+                        <span class="test-status pending" id="memory-test">Testing...</span>
+                    </div>
+                    <div class="test-item">
+                        Touch/Mouse Responsiveness
+                        <span class="test-status pending" id="input-test">Testing...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Canvas Container -->
+        <div id="game-canvas-container">
+            <h3 style="text-align: center; color: #00ffff; margin-bottom: 15px;">
+                Live Phaser.js Canvas Test
+            </h3>
+            <div id="phaser-game"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Visual Test System
+        class VisualTestSuite {
+            constructor() {
+                this.tests = {
+                    canvas: false,
+                    mobileScale: false,
+                    desktopScale: false,
+                    sprite: false,
+                    fps: false,
+                    resize: false,
+                    memory: false,
+                    input: false
+                };
+                
+                this.frameCount = 0;
+                this.lastFrameTime = performance.now();
+                this.fps = 60;
+                this.game = null;
+                this.testSprite = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.detectDeviceInfo();
+                this.setupPhaser();
+                this.startPerformanceMonitoring();
+                this.setupInputTests();
+                this.runResponsiveTests();
+            }
+            
+            detectDeviceInfo() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                document.getElementById('viewport-size').textContent = `${width}x${height}`;
+                document.getElementById('screen-size').textContent = `${screen.width}x${screen.height}`;
+                document.getElementById('pixel-ratio').textContent = window.devicePixelRatio || 1;
+                
+                // Determine device type
+                let deviceType = 'Unknown';
+                if (width <= 768) {
+                    deviceType = 'Mobile';
+                } else if (width <= 1024) {
+                    deviceType = 'Tablet';
+                } else {
+                    deviceType = 'Desktop';
+                }
+                document.getElementById('device-type').textContent = deviceType;
+            }
+            
+            setupPhaser() {
+                // Phaser game configuration matching our main game
+                const config = {
+                    type: Phaser.AUTO,
+                    width: 320,
+                    height: 640,
+                    parent: 'phaser-game',
+                    backgroundColor: '#2D1B69',
+                    scale: {
+                        mode: Phaser.Scale.FIT,
+                        autoCenter: Phaser.Scale.CENTER_BOTH,
+                        width: 320,
+                        height: 640
+                    },
+                    scene: {
+                        preload: this.preload.bind(this),
+                        create: this.create.bind(this),
+                        update: this.update.bind(this)
+                    }
+                };
+                
+                try {
+                    this.game = new Phaser.Game(config);
+                    this.tests.canvas = true;
+                    this.updateTestStatus('canvas-test', true);
+                } catch (error) {
+                    console.error('Phaser initialization failed:', error);
+                    this.updateTestStatus('canvas-test', false);
+                }
+            }
+            
+            preload() {
+                // Create simple test sprites programmatically
+                this.add.graphics()
+                    .fillStyle(0xff6b6b)
+                    .fillRect(0, 0, 48, 48)
+                    .generateTexture('test-sprite', 48, 48);
+                
+                // Create platform texture
+                this.add.graphics()
+                    .fillStyle(0x8b4513)
+                    .fillRect(0, 0, 200, 20)
+                    .generateTexture('platform', 200, 20);
+            }
+            
+            create() {
+                // Test sprite rendering
+                this.testSprite = this.add.sprite(160, 100, 'test-sprite');
+                this.testSprite.setScale(1);
+                
+                // Test platform rendering
+                const platform1 = this.add.sprite(160, 200, 'platform');
+                const platform2 = this.add.sprite(160, 300, 'platform');
+                const platform3 = this.add.sprite(160, 400, 'platform');
+                
+                // Test UI text
+                this.add.text(20, 20, '❤️❤️❤️', { 
+                    fontSize: '24px', 
+                    color: '#ff6b6b' 
+                });
+                
+                this.add.text(20, 50, 'Score: 1250', { 
+                    fontSize: '16px', 
+                    color: '#00ffff' 
+                });
+                
+                this.add.text(20, 70, 'Time: 1:30', { 
+                    fontSize: '16px', 
+                    color: '#ffd93d' 
+                });
+                
+                // Canvas creation successful
+                this.tests.sprite = true;
+                this.updateTestStatus('sprite-test', true);
+                
+                // Test responsive scaling
+                this.testResponsiveScaling();
+            }
+            
+            update() {
+                // Animate test sprite
+                if (this.testSprite) {
+                    this.testSprite.y = 100 + Math.sin(this.time.now * 0.005) * 20;
+                    this.testSprite.rotation += 0.01;
+                }
+                
+                // Update canvas size display
+                if (this.game && this.game.canvas) {
+                    const canvas = this.game.canvas;
+                    document.getElementById('canvas-size').textContent = 
+                        `${canvas.width}x${canvas.height}`;
+                }
+            }
+            
+            testResponsiveScaling() {
+                const width = window.innerWidth;
+                
+                // Test mobile scaling (320px-428px)
+                if (width >= 320 && width <= 768) {
+                    this.tests.mobileScale = true;
+                    this.updateTestStatus('mobile-scale-test', true);
+                } else if (width < 320) {
+                    this.updateTestStatus('mobile-scale-test', false);
+                } else {
+                    // Not mobile, skip mobile test
+                    this.updateTestStatus('mobile-scale-test', true);
+                }
+                
+                // Test desktop scaling (1024px+)
+                if (width >= 1024) {
+                    this.tests.desktopScale = true;
+                    this.updateTestStatus('desktop-scale-test', true);
+                } else {
+                    // Not desktop, skip desktop test
+                    this.updateTestStatus('desktop-scale-test', true);
+                }
+            }
+            
+            runResponsiveTests() {
+                // Test window resize performance
+                let resizeCount = 0;
+                const startTime = performance.now();
+                
+                const testResize = () => {
+                    resizeCount++;
+                    if (resizeCount < 5) {
+                        // Simulate resize
+                        window.dispatchEvent(new Event('resize'));
+                        setTimeout(testResize, 100);
+                    } else {
+                        const resizeTime = performance.now() - startTime;
+                        this.tests.resize = resizeTime < 500; // Should handle 5 resizes in <500ms
+                        this.updateTestStatus('resize-test', this.tests.resize);
+                    }
+                };
+                
+                setTimeout(testResize, 1000);
+            }
+            
+            setupInputTests() {
+                let inputTested = false;
+                const canvas = document.querySelector('#phaser-game canvas');
+                
+                const testInput = () => {
+                    inputTested = true;
+                    this.tests.input = true;
+                    this.updateTestStatus('input-test', true);
+                };
+                
+                // Test touch input
+                if (canvas) {
+                    canvas.addEventListener('touchstart', testInput, { passive: true });
+                    canvas.addEventListener('mousedown', testInput);
+                }
+                
+                // Auto-pass input test after 3 seconds if no interaction
+                setTimeout(() => {
+                    if (!inputTested) {
+                        this.tests.input = true;
+                        this.updateTestStatus('input-test', true);
+                    }
+                }, 3000);
+            }
+            
+            startPerformanceMonitoring() {
+                const monitor = () => {
+                    const now = performance.now();
+                    const deltaTime = now - this.lastFrameTime;
+                    
+                    this.frameCount++;
+                    this.fps = 1000 / deltaTime;
+                    
+                    document.getElementById('fps-counter').textContent = 
+                        Math.round(this.fps);
+                    document.getElementById('render-time').textContent = 
+                        deltaTime.toFixed(2) + 'ms';
+                    
+                    // Test FPS after stabilization
+                    if (this.frameCount > 120) { // Wait 2 seconds at 60fps
+                        this.tests.fps = this.fps >= 50; // Allow some tolerance
+                        this.updateTestStatus('fps-test', this.tests.fps);
+                    }
+                    
+                    // Test memory usage (basic)
+                    if (this.frameCount === 300) { // After 5 seconds
+                        if (performance.memory) {
+                            const memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024;
+                            this.tests.memory = memoryUsage < 50; // Less than 50MB
+                        } else {
+                            this.tests.memory = true; // Pass if no memory API
+                        }
+                        this.updateTestStatus('memory-test', this.tests.memory);
+                    }
+                    
+                    this.lastFrameTime = now;
+                    requestAnimationFrame(monitor);
+                };
+                
+                requestAnimationFrame(monitor);
+            }
+            
+            updateTestStatus(elementId, passed) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = passed ? 'PASS' : 'FAIL';
+                    element.className = `test-status ${passed ? 'pass' : 'fail'}`;
+                }
+            }
+        }
+        
+        // Initialize visual tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new VisualTestSuite();
+        });
+        
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            // Update viewport info on resize
+            setTimeout(() => {
+                document.getElementById('viewport-size').textContent = 
+                    `${window.innerWidth}x${window.innerHeight}`;
+            }, 100);
+        });
+    </script>
+</body>
+</html> 

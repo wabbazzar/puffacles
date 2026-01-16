@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Queen Movement Test - Puffy Queen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: monospace;
+        }
+        #game-container {
+            border: 2px solid #444;
+            border-radius: 4px;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Phaser.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+
+    <!-- Game scripts -->
+    <script src="game/sprites/QueenSprite.js"></script>
+    <script src="game/scenes/QueenTestScene.js"></script>
+
+    <script>
+        // Phaser game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 320,
+            height: 180,
+            parent: 'game-container',
+            pixelArt: true, // Crisp pixels, no antialiasing
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 }, // Queen handles its own gravity
+                    debug: false
+                }
+            },
+            scene: [QueenTestScene]
+        };
+
+        // Create game instance
+        const game = new Phaser.Game(config);
+
+        console.log('Queen Movement Test initialized');
+        console.log('Controls: WASD/Arrows to move, Space/Click to flap');
+    </script>
+</body>
+</html>

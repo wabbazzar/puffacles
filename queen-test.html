@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Queen Movement Test - Puffy Queen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: monospace;
+        }
+        #game-container {
+            border: 2px solid #444;
+            border-radius: 4px;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Phaser.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+
+    <!-- Game scripts (cache bust with version) -->
+    <script src="game/sprites/QueenSprite.js?v=12"></script>
+    <script src="game/sprites/WorkerSprite.js?v=12"></script>
+    <script src="game/controllers/AIQueenController.js?v=12"></script>
+    <script src="game/controllers/WorkerAI.js?v=12"></script>
+    <script src="game/managers/StatsManager.js?v=12"></script>
+    <script src="game/navigation/WaypointGraph.js?v=14"></script>
+    <script src="game/scenes/QueenTestScene.js?v=12"></script>
+
+    <script>
+        // Phaser game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 320,
+            height: 180,
+            parent: 'game-container',
+            pixelArt: true, // Crisp pixels, no antialiasing
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                // Scale up to fill window while maintaining 16:9 aspect ratio
+                width: 320,
+                height: 180,
+                min: {
+                    width: 320,
+                    height: 180
+                },
+                max: {
+                    width: 1920,
+                    height: 1080
+                },
+                // Zoom factor for desktop - makes game 3x larger by default
+                zoom: Math.min(
+                    Math.floor(window.innerWidth / 320),
+                    Math.floor(window.innerHeight / 180),
+                    4 // Max 4x zoom
+                )
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 }, // Queen handles its own gravity
+                    debug: false
+                }
+            },
+            scene: [QueenTestScene]
+        };
+
+        // Create game instance (expose globally for testing)
+        window.game = new Phaser.Game(config);
+
+        console.log('Queen Movement Test initialized');
+        console.log('Controls: WASD/Arrows to move, Space/Click to flap');
+    </script>
+</body>
+</html>

@@ -24,7 +24,9 @@ class QueenSprite {
         this.flapImpulse = -180;   // px/sec (instant upward velocity)
         this.maxFallSpeed = 200;   // px/sec
         this.maxRiseSpeed = -250;  // px/sec
-        this.horizontalSpeed = 120; // px/sec
+        this.baseHorizontalSpeed = 120; // px/sec (base value)
+        this.speedMultiplier = 1.0;     // Can be reduced for AI queen
+        this.horizontalSpeed = this.baseHorizontalSpeed * this.speedMultiplier;
 
         // Display properties
         this.displaySize = 48; // pixels
@@ -46,6 +48,17 @@ class QueenSprite {
         // Current animation state
         this.currentAnimation = 'hover';
 
+        // Combat state
+        this.isDiving = false;
+        this.diveSpeed = 300; // Fast downward speed during dive
+
+        // Lives system
+        this.lives = 3; // Reduced for faster military victories
+        this.isInvincible = false;
+        this.invincibilityDuration = 2000; // 2 seconds
+        this.invincibilityTimer = 0;
+        this.invincibilityFlashRate = 100; // ms between flashes
+
         this.init();
     }
 
@@ -61,7 +74,7 @@ class QueenSprite {
     }
 
     async analyzeImageDimensions() {
-        console.log('Queen: Analyzing queen_sprite_4x4.png dimensions...');
+        console.log('Queen: Analyzing regal_puffy_4by4.png dimensions...');
 
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -85,17 +98,25 @@ class QueenSprite {
             };
 
             img.onerror = () => {
-                reject(new Error('Failed to load queen_sprite_4x4.png'));
+                reject(new Error('Failed to load regal_puffy_4by4.png'));
             };
 
-            img.src = 'assets/queen_sprite_4x4.png?t=' + Date.now();
+            img.src = 'assets/regal_puffy_4by4.png?t=' + Date.now();
         });
     }
 
     loadSpriteSheet() {
+        // Check if texture already exists (for multiple queen instances)
+        if (this.scene.textures.exists('queen_sprites')) {
+            console.log('Queen: Sprite sheet already loaded, reusing');
+            this.setupAnimationsIfNeeded();
+            this.markAsReadyForCreation();
+            return;
+        }
+
         console.log(`Queen: Loading sprite sheet (${this.frameWidth}x${this.frameHeight} frames)`);
 
-        this.scene.load.spritesheet('queen_sprites', 'assets/queen_sprite_4x4.png', {
+        this.scene.load.spritesheet('queen_sprites', 'assets/regal_puffy_4by4.png', {
             frameWidth: this.frameWidth,
             frameHeight: this.frameHeight
         });
@@ -114,6 +135,15 @@ class QueenSprite {
         this.scene.load.start();
     }
 
+    setupAnimationsIfNeeded() {
+        // Check if animations already exist
+        if (this.scene.anims.exists('queen_hover')) {
+            console.log('Queen: Animations already exist, skipping setup');
+            return;
+        }
+        this.setupAnimations();
+    }
+
     markAsReadyForCreation() {
         this.spriteSheetReady = true;
         console.log('Queen: Ready for sprite creation');
@@ -122,8 +152,12 @@ class QueenSprite {
     setupAnimations() {
         console.log('Queen: Setting up flying animations...');
 
+        // Animations that should loop
+        const loopingAnimations = ['hover', 'fall'];
+
         Object.keys(this.animations).forEach(animKey => {
             const anim = this.animations[animKey];
+            const shouldLoop = loopingAnimations.includes(animKey);
 
             this.scene.anims.create({
                 key: `queen_${animKey}`,
@@ -131,10 +165,10 @@ class QueenSprite {
                     frames: anim.frames
                 }),
                 frameRate: anim.frameRate,
-                repeat: -1 // All animations loop
+                repeat: shouldLoop ? -1 : 0 // hover/fall loop, flap_up/dive play once
             });
 
-            console.log(`Queen: Created 'queen_${animKey}' @ ${anim.frameRate}fps - ${anim.description}`);
+            console.log(`Queen: Created 'queen_${animKey}' @ ${anim.frameRate}fps - ${anim.description} (loop: ${shouldLoop})`);
         });
 
         console.log('Queen: All animations ready');
@@ -165,9 +199,10 @@ class QueenSprite {
 
         // Set physics properties
         this.body.setCollideWorldBounds(true);
-        this.body.setBounce(0.1); // Slight bounce off boundaries
+        this.body.setBounce(0.3); // More bounce for tighter feel
         this.body.setGravityY(this.gravity);
         this.body.setMaxVelocityY(this.maxFallSpeed);
+        this.body.setDragX(400); // Air friction for tighter horizontal control
 
         // Start with hover animation
         this.sprite.play('queen_hover');
@@ -221,13 +256,185 @@ class QueenSprite {
     }
 
     /**
+     * Start dive attack
+     */
+    startDive() {
+        if (!this.isReady || !this.body) return;
+        if (this.isDiving) return; // Already diving
+
+        this.isDiving = true;
+        this.body.setVelocityY(this.diveSpeed);
+        this.body.setMaxVelocityY(this.diveSpeed); // Allow faster fall during dive
+
+        // Play dive animation
+        this.currentAnimation = 'dive';
+        this.sprite.play('queen_dive');
+
+        // Apply directional rotation based on horizontal velocity
+        const vx = this.body.velocity.x;
+        if (vx < -20) {
+            // Moving left - tilt left (negative rotation)
+            this.sprite.setRotation(-0.35); // ~20 degrees left
+        } else if (vx > 20) {
+            // Moving right - tilt right (positive rotation)
+            this.sprite.setRotation(0.35); // ~20 degrees right
+        } else {
+            // Straight down - no rotation
+            this.sprite.setRotation(0);
+        }
+
+        console.log('Queen: DIVE ATTACK!');
+    }
+
+    /**
+     * End dive attack (call when hitting ground or target)
+     */
+    endDive() {
+        if (!this.isDiving) return;
+
+        this.isDiving = false;
+        this.body.setMaxVelocityY(this.maxFallSpeed); // Reset max fall speed
+
+        // Reset rotation
+        if (this.sprite) {
+            this.sprite.setRotation(0);
+        }
+
+        console.log('Queen: Dive ended');
+    }
+
+    /**
+     * Check if currently diving (for combat detection)
+     */
+    getIsDiving() {
+        return this.isDiving;
+    }
+
+    /**
+     * Take damage - lose a life and become invincible
+     * Returns true if queen died (no lives left)
+     */
+    takeDamage() {
+        if (this.isInvincible) return false;
+
+        this.lives--;
+        console.log(`Queen: Took damage! Lives remaining: ${this.lives}`);
+
+        if (this.lives <= 0) {
+            console.log('Queen: DEFEATED!');
+            return true; // Queen is dead
+        }
+
+        // Start invincibility
+        this.startInvincibility();
+        return false;
+    }
+
+    /**
+     * Start invincibility period after taking damage
+     */
+    startInvincibility() {
+        this.isInvincible = true;
+        this.invincibilityTimer = this.invincibilityDuration;
+        console.log('Queen: Invincibility started');
+    }
+
+    /**
+     * Update invincibility timer - call in update loop
+     */
+    updateInvincibility(delta) {
+        if (!this.isInvincible) return;
+
+        this.invincibilityTimer -= delta;
+
+        // Flash effect during invincibility
+        if (this.sprite) {
+            const flashOn = Math.floor(this.invincibilityTimer / this.invincibilityFlashRate) % 2 === 0;
+            this.sprite.setAlpha(flashOn ? 1 : 0.3);
+        }
+
+        // End invincibility
+        if (this.invincibilityTimer <= 0) {
+            this.isInvincible = false;
+            if (this.sprite) {
+                this.sprite.setAlpha(1);
+            }
+            console.log('Queen: Invincibility ended');
+        }
+    }
+
+    /**
+     * Check if currently invincible
+     */
+    getIsInvincible() {
+        return this.isInvincible;
+    }
+
+    /**
+     * Get current lives count
+     */
+    getLives() {
+        return this.lives;
+    }
+
+    /**
+     * Reset lives (for game restart)
+     */
+    resetLives() {
+        this.lives = 3; // Match initial lives count
+        this.isInvincible = false;
+        if (this.sprite) {
+            this.sprite.setAlpha(1);
+        }
+    }
+
+    /**
+     * Set speed multiplier (use < 1.0 for slower AI queen)
+     * @param {number} multiplier - Speed multiplier (0.83 = ~100px/sec vs 120px/sec base)
+     */
+    setSpeedMultiplier(multiplier) {
+        this.speedMultiplier = multiplier;
+        this.horizontalSpeed = this.baseHorizontalSpeed * this.speedMultiplier;
+        console.log(`Queen: Speed multiplier set to ${multiplier}, horizontal speed now ${this.horizontalSpeed}`);
+    }
+
+    /**
      * Update - call in scene update loop
      * Handles animation state machine based on velocity
+     * @param {number} delta - Time since last frame in ms
      */
-    update() {
+    update(delta = 16.67) {
         if (!this.isReady || !this.body) return;
 
+        // Update invincibility
+        this.updateInvincibility(delta);
+
         const vy = this.body.velocity.y;
+        const pos = this.getPosition();
+
+        // End dive if we hit the bottom
+        if (this.isDiving && pos.y >= 160) {
+            this.endDive();
+        }
+
+        // Update dive rotation based on current velocity (for dynamic direction changes)
+        if (this.isDiving && this.sprite) {
+            const vx = this.body.velocity.x;
+            if (vx < -20) {
+                this.sprite.setRotation(-0.35);
+            } else if (vx > 20) {
+                this.sprite.setRotation(0.35);
+            } else {
+                this.sprite.setRotation(0);
+            }
+            return; // Skip normal animation logic if diving
+        }
+
+        // Skip normal animation logic if diving
+        if (this.isDiving) {
+            return;
+        }
+
         let newAnimation = 'hover';
 
         // Animation state machine based on vertical velocity

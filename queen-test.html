@@ -35,9 +35,14 @@
     <!-- Phaser.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 
-    <!-- Game scripts -->
-    <script src="game/sprites/QueenSprite.js"></script>
-    <script src="game/scenes/QueenTestScene.js"></script>
+    <!-- Game scripts (cache bust with version) -->
+    <script src="game/sprites/QueenSprite.js?v=12"></script>
+    <script src="game/sprites/WorkerSprite.js?v=12"></script>
+    <script src="game/controllers/AIQueenController.js?v=12"></script>
+    <script src="game/controllers/WorkerAI.js?v=12"></script>
+    <script src="game/managers/StatsManager.js?v=12"></script>
+    <script src="game/navigation/WaypointGraph.js?v=14"></script>
+    <script src="game/scenes/QueenTestScene.js?v=12"></script>
 
     <script>
         // Phaser game configuration
@@ -49,7 +54,24 @@
             pixelArt: true, // Crisp pixels, no antialiasing
             scale: {
                 mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                // Scale up to fill window while maintaining 16:9 aspect ratio
+                width: 320,
+                height: 180,
+                min: {
+                    width: 320,
+                    height: 180
+                },
+                max: {
+                    width: 1920,
+                    height: 1080
+                },
+                // Zoom factor for desktop - makes game 3x larger by default
+                zoom: Math.min(
+                    Math.floor(window.innerWidth / 320),
+                    Math.floor(window.innerHeight / 180),
+                    4 // Max 4x zoom
+                )
             },
             physics: {
                 default: 'arcade',
@@ -61,8 +83,8 @@
             scene: [QueenTestScene]
         };
 
-        // Create game instance
-        const game = new Phaser.Game(config);
+        // Create game instance (expose globally for testing)
+        window.game = new Phaser.Game(config);
 
         console.log('Queen Movement Test initialized');
         console.log('Controls: WASD/Arrows to move, Space/Click to flap');

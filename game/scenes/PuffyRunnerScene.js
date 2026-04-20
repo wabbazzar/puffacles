@@ -262,25 +262,52 @@ class PuffyRunnerScene extends Phaser.Scene {
     }
 
     // ---------- Wabbazzar rain ----------
+    // Contract: docs/puffacles-contract.md §1.
+    // Silent fallback on ANY fetch/parse/validation failure — no console
+    // errors, no UI tell. The site may be mid-deploy or the user offline.
     loadWabbazzarAscii() {
-        // Try same-origin first (the common case: /puffacles/ is served from
-        // wabbazzar.com). Fall back to the absolute URL for local testing.
         const candidates = ['/ascii-art.json', 'https://wabbazzar.com/ascii-art.json'];
         const tryNext = (i) => {
             if (i >= candidates.length) return;
             fetch(candidates[i], { cache: 'no-cache' })
                 .then(r => r.ok ? r.json() : Promise.reject(r.status))
                 .then(data => {
-                    const glyphs = Array.isArray(data)
-                        ? data
-                        : (Array.isArray(data.glyphs) ? data.glyphs : null);
-                    if (!glyphs || !glyphs.length) throw new Error('empty glyphs');
+                    const glyphs = this._parseWabbazzarPayload(data);
+                    if (!glyphs.length) throw new Error('empty/invalid');
                     this._wabbazzarGlyphs = glyphs;
                     this.startWabbazzarRain();
                 })
                 .catch(() => tryNext(i + 1));
         };
         tryNext(0);
+    }
+
+    // Accept both `{glyphs:[...]}` (preferred) and a bare array (legacy).
+    // Drop any glyph that's empty or has inconsistent row widths. Unknown
+    // keys on the root object (`version`, `meta`, future additions) are
+    // ignored gracefully — forward-compat per §1.
+    _parseWabbazzarPayload(data) {
+        let raw = null;
+        if (Array.isArray(data)) {
+            raw = data;
+        } else if (data && typeof data === 'object' && Array.isArray(data.glyphs)) {
+            raw = data.glyphs;
+        }
+        if (!raw) return [];
+        const valid = [];
+        for (const g of raw) {
+            if (typeof g !== 'string' || g.length === 0) continue;
+            const lines = g.split('\n');
+            if (lines.length === 0) continue;
+            const w = lines[0].length;
+            if (w === 0) continue;
+            let ok = true;
+            for (const ln of lines) {
+                if (ln.length !== w) { ok = false; break; }
+            }
+            if (ok) valid.push(g);
+        }
+        return valid;
     }
 
     startWabbazzarRain() {
@@ -324,14 +351,26 @@ class PuffyRunnerScene extends Phaser.Scene {
         }
     }
 
-    // Renders a single glyph into a canvas whose content is clipped to a
-    // squircle-ish rounded rect (native ctx.roundRect + ctx.clip()) and
-    // caches the result as a Phaser texture. The ASCII is painted in pure
-    // white so Phaser's .setTint can re-color the tile at render time —
-    // this means we can swap day/night palette without re-baking textures.
+    // Renders a single glyph into a canvas and caches it as a Phaser texture.
+    //
+    // IMPORTANT (per docs/puffacles-contract.md §1): the site pre-masks each
+    // glyph with an iOS squircle using leading/trailing spaces. Applying a
+    // canvas clip here would double-round the content. So this function just
+    // paints the text as-is — the corner spaces in the incoming glyph take
+    // care of the rounded silhouette.
+    //
+    // Painted in pure white so Phaser's .setTint can re-color per-tile at
+    // render time (lets us swap day/night without re-baking textures).
     _makeRainTileTexture(glyph, fontSize) {
-        const safe = glyph.replace(/[^a-zA-Z0-9]/g, 'x').slice(0, 40);
-        const key = `rain_${safe}_${glyph.length}_${fontSize}`;
+        // Hash the whole glyph — using first-N-chars "safe" would collide for
+        // phones whose ASCII is all punctuation (every char maps to 'x'),
+        // which is exactly what the site produces. Every glyph in the pool
+        // needs its own texture or we render the same one 4x.
+        let h = 5381;
+        for (let i = 0; i < glyph.length; i++) {
+            h = ((h << 5) + h + glyph.charCodeAt(i)) | 0;
+        }
+        const key = `rain_${(h >>> 0).toString(36)}_${glyph.length}_${fontSize}`;
         if (this.textures.exists(key)) {
             const src = this.textures.get(key).getSourceImage();
             return { key, tileW: src.width, tileH: src.height };
@@ -347,28 +386,12 @@ class PuffyRunnerScene extends Phaser.Scene {
         const pad = Math.max(2, Math.round(fontSize * 0.2));
         const tileW = Math.ceil(maxW + pad * 2);
         const tileH = Math.ceil(lines.length * lineHeight + pad * 2);
-        const radius = Math.min(tileW, tileH) * 0.2237;
 
         const canvas = document.createElement('canvas');
         canvas.width = tileW;
         canvas.height = tileH;
         const ctx = canvas.getContext('2d');
 
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-            ctx.roundRect(0, 0, tileW, tileH, radius);
-        } else {
-            const r = Math.min(radius, tileW / 2, tileH / 2);
-            ctx.moveTo(r, 0);
-            ctx.arcTo(tileW, 0, tileW, r, r);
-            ctx.arcTo(tileW, tileH, tileW - r, tileH, r);
-            ctx.arcTo(0, tileH, 0, tileH - r, r);
-            ctx.arcTo(0, 0, r, 0, r);
-            ctx.closePath();
-        }
-        ctx.clip();
-
-        // White text — tint will re-color it at render time for day/night.
         ctx.fillStyle = '#ffffff';
         ctx.font = `${fontSize}px 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace`;
         ctx.textBaseline = 'top';

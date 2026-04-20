@@ -1,8 +1,27 @@
 # CLAUDE.md
 
+## ⚠ Cross-repo contract — READ BEFORE EDITING RAIN / iframe CODE
+
+Puffacles is consumed by **wabbazzar.com** as an easter-egg game in an
+iframe. The two repos share a formal contract at
+[`docs/puffacles-contract.md`](docs/puffacles-contract.md) covering:
+
+- `?bg=wabbazzar` query param → fetch `/ascii-art.json`
+- JSON shape (accept both `{glyphs:[...]}` and bare array)
+- Glyphs are **already iOS-squircle-masked by the site** — the game
+  **MUST NOT** apply additional clipping/masking (double-rounds = broken).
+- Silent fallback on any fetch/parse error (no console noise).
+- `postMessage("puffacles:exit")` → parent dismisses the iframe.
+
+Any change to those behaviors requires coordinated updates in both
+wabbazzar.github.io and this repo. Read the contract doc first.
+
 ## Project Overview
 
-**Puffy Queen** is a simplified Killer Queen-inspired 1v1 arcade game built with Phaser.js. Players control a flying Queen cat while AI-controlled workers gather treats. Two win conditions: Military (kill enemy queen 3x) or Economic (collect 6 treats).
+**Puffy Runner** (served at `/`) is a Chrome-Dino-style endless runner
+built on Phaser.js. Tap/Space to jump; survive as long as possible.
+Older prototypes (`/queen-test.html`) still live in the tree for
+reference but aren't the canonical entry.
 
 ## Current Phase
 

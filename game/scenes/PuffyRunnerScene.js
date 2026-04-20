@@ -62,6 +62,28 @@ class PuffyRunnerScene extends Phaser.Scene {
         this.bgLayers = { stars: [], mountains: [], hills: [], clouds: [], tufts: [], ground: [] };
         this.buildBackground();
 
+        // --- Optional Wabbazzar ASCII rain (enabled via ?bg=wabbazzar) ---
+        //
+        // The wabbazzar.com easter egg redirects here with that query param. When
+        // set, we async-fetch /ascii-art.json from the same origin, then drift
+        // random glyphs from the top of the screen downward behind gameplay.
+        //
+        // Contract the site side should honour:
+        //   GET /ascii-art.json → JSON. Either:
+        //     (a) an array of strings, each a multi-line ASCII art blob, OR
+        //     (b) { "glyphs": [string, ...] }
+        //   CORS: same-origin with wabbazzar.com works; otherwise the response
+        //   needs Access-Control-Allow-Origin for the game's host.
+        this._wabbazzarGlyphs = null;
+        this._wabbazzarRain = [];
+        this._wabbazzarSpawnTimer = null;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            if ((params.get('bg') || '').toLowerCase() === 'wabbazzar') {
+                this.loadWabbazzarAscii();
+            }
+        } catch (_) { /* ignore param parsing issues */ }
+
         // --- Obstacles ---
         this.obstacles = this.physics.add.group();
 
@@ -103,9 +125,6 @@ class PuffyRunnerScene extends Phaser.Scene {
         this.events.once('destroy', () => {
             this.scale.off('resize', this._onResizeRaw);
         });
-
-        this._maxFrameMs = 0;
-        this._lastFrameTime = 0;
     }
 
     // ---------- Layout ----------
@@ -239,6 +258,85 @@ class PuffyRunnerScene extends Phaser.Scene {
         }
     }
 
+    // ---------- Wabbazzar rain ----------
+    loadWabbazzarAscii() {
+        // Try same-origin first (the common case: /puffacles/ is served from
+        // wabbazzar.com). Fall back to the absolute URL for local testing.
+        const candidates = ['/ascii-art.json', 'https://wabbazzar.com/ascii-art.json'];
+        const tryNext = (i) => {
+            if (i >= candidates.length) return;
+            fetch(candidates[i], { cache: 'no-cache' })
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(data => {
+                    const glyphs = Array.isArray(data)
+                        ? data
+                        : (Array.isArray(data.glyphs) ? data.glyphs : null);
+                    if (!glyphs || !glyphs.length) throw new Error('empty glyphs');
+                    this._wabbazzarGlyphs = glyphs;
+                    this.startWabbazzarRain();
+                })
+                .catch(() => tryNext(i + 1));
+        };
+        tryNext(0);
+    }
+
+    startWabbazzarRain() {
+        if (this._wabbazzarSpawnTimer || !this._wabbazzarGlyphs) return;
+        // Spawn one glyph every ~1.5s; each glyph drifts for 8–14s.
+        this._wabbazzarSpawnTimer = this.time.addEvent({
+            delay: 1400,
+            loop: true,
+            callback: () => this.spawnWabbazzarGlyph(),
+            callbackScope: this
+        });
+        // Prime with a first glyph immediately so the effect is visible.
+        this.spawnWabbazzarGlyph();
+
+        this.events.once('shutdown', () => {
+            if (this._wabbazzarSpawnTimer) {
+                this._wabbazzarSpawnTimer.remove(false);
+                this._wabbazzarSpawnTimer = null;
+            }
+        });
+    }
+
+    spawnWabbazzarGlyph() {
+        if (!this._wabbazzarGlyphs || !this._wabbazzarGlyphs.length) return;
+        const glyph = Phaser.Utils.Array.GetRandom(this._wabbazzarGlyphs);
+        const fontSize = Math.max(9, Math.round(10 * this.worldScale));
+        const style = {
+            fontFamily: 'Menlo, Consolas, "Courier New", monospace',
+            fontSize: fontSize + 'px',
+            color: this.BG_SOFT_COLOR,
+            align: 'left',
+            lineSpacing: -1
+        };
+        const x = Phaser.Math.Between(20, Math.max(40, this.scale.width - 40));
+        const t = this.add.text(x, -40, glyph, style)
+            .setOrigin(0.5, 1)
+            .setAlpha(0.55)
+            .setDepth(0);     // sits at bg depth — Puffy/obstacles draw on top.
+
+        const duration = Phaser.Math.Between(8000, 14000);
+        const endY = this.scale.height + 120;
+        const drift = Phaser.Math.Between(-60, 60);
+
+        this.tweens.add({
+            targets: t,
+            y: endY,
+            x: t.x + drift,
+            alpha: { from: 0.6, to: 0.15 },
+            duration,
+            ease: 'Linear',
+            onComplete: () => {
+                const idx = this._wabbazzarRain.indexOf(t);
+                if (idx >= 0) this._wabbazzarRain.splice(idx, 1);
+                t.destroy();
+            }
+        });
+        this._wabbazzarRain.push(t);
+    }
+
     // ---------- Puffy bootstrap ----------
     tryCreatePuffy() {
         if (!this.puffy || !this.puffy.spriteSheetReady || this.puffy.sprite) return;
@@ -289,14 +387,6 @@ class PuffyRunnerScene extends Phaser.Scene {
             `HI   ${this.padScore(this.highScore)}`, style).setOrigin(1, 0);
         this.hudLives = this.add.text(10, 8, this.livesString(), style);
 
-        // Small FPS readout so performance issues are observable.
-        this.hudFps = this.add.text(10, 8 + this.fonts.hud + 2, 'FPS --', {
-            fontFamily: 'Menlo, Consolas, "Courier New", monospace',
-            fontSize: Math.max(10, this.fonts.hud - 2) + 'px',
-            color: c
-        });
-        this._fpsSampleAt = 0;
-
         this.gameOverText = this.add.text(
             this.scale.width / 2, this.scale.height * 0.42,
             '', {
@@ -321,28 +411,12 @@ class PuffyRunnerScene extends Phaser.Scene {
             this.hudLives.setText(livesStr);
             this._lastLivesStr = livesStr;
         }
-        // FPS + worst-frame readout — throttled to 4x/sec. "MAX" is the longest
-        // frame observed since the previous sample (in ms); if this spikes while
-        // FPS looks OK, you caught a sub-250ms hitch.
-        const now = this.time.now;
-        if (now - this._fpsSampleAt > 250) {
-            this._fpsSampleAt = now;
-            const fps = Math.round(this.game.loop.actualFps);
-            const maxMs = Math.round(this._maxFrameMs);
-            this._maxFrameMs = 0;
-            const fpsStr = `FPS ${fps}  MAX ${maxMs}ms`;
-            if (fpsStr !== this._lastFpsStr) {
-                this.hudFps.setText(fpsStr);
-                this._lastFpsStr = fpsStr;
-            }
-        }
     }
 
     repositionHud() {
         this.hudDistance.setPosition(this.scale.width - 10, 8);
         this.hudHigh.setPosition(this.scale.width - 10, 8 + this.fonts.hud + 2);
         this.hudLives.setPosition(10, 8);
-        if (this.hudFps) this.hudFps.setPosition(10, 8 + this.fonts.hud + 2);
         this.gameOverText.setPosition(this.scale.width / 2, this.scale.height * 0.42);
     }
 
@@ -389,10 +463,6 @@ class PuffyRunnerScene extends Phaser.Scene {
 
     // ---------- Main loop ----------
     update(time, delta) {
-        // Track the worst frame delta since the last HUD refresh so stutters
-        // shorter than the FPS sample window still surface.
-        if (delta > this._maxFrameMs) this._maxFrameMs = delta;
-
         // R restart at any time.
         if (this.gameState === 'gameover') {
             if (Phaser.Input.Keyboard.JustDown(this.keyR)) this.restart();
@@ -637,7 +707,6 @@ class PuffyRunnerScene extends Phaser.Scene {
         if (this.hudDistance) this.hudDistance.setColor(p.hud);
         if (this.hudHigh)     this.hudHigh.setColor(p.hud);
         if (this.hudLives)    this.hudLives.setColor(p.hud);
-        if (this.hudFps)      this.hudFps.setColor(p.hud);
         if (this.gameOverText) this.gameOverText.setColor(p.hud);
     }
 

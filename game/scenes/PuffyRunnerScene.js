@@ -326,17 +326,19 @@ class PuffyRunnerScene extends Phaser.Scene {
 
     // Renders a single glyph into a canvas whose content is clipped to a
     // squircle-ish rounded rect (native ctx.roundRect + ctx.clip()) and
-    // caches the result as a Phaser texture. No visible outline — the ASCII
-    // characters themselves get their corners chopped, exactly like the site's
-    //   .ascii-phone pre { border-radius: 22.37%; overflow: hidden; }
-    _makeRainTileTexture(glyph, fontSize, colorRgba) {
-        // Texture key is keyed by the glyph content + size + color.
+    // caches the result as a Phaser texture. The ASCII is painted in pure
+    // white so Phaser's .setTint can re-color the tile at render time —
+    // this means we can swap day/night palette without re-baking textures.
+    _makeRainTileTexture(glyph, fontSize) {
         const safe = glyph.replace(/[^a-zA-Z0-9]/g, 'x').slice(0, 40);
-        const key = `rain_${safe}_${glyph.length}_${fontSize}_${colorRgba.replace(/[^0-9]/g,'')}`;
-        if (this.textures.exists(key)) return { key };
+        const key = `rain_${safe}_${glyph.length}_${fontSize}`;
+        if (this.textures.exists(key)) {
+            const src = this.textures.get(key).getSourceImage();
+            return { key, tileW: src.width, tileH: src.height };
+        }
 
         const lines = glyph.split('\n');
-        const lineHeight = fontSize;               // matches site: line-height 11px at 11px font
+        const lineHeight = fontSize;
         const measure = document.createElement('canvas').getContext('2d');
         measure.font = `${fontSize}px 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace`;
         let maxW = 0;
@@ -352,7 +354,6 @@ class PuffyRunnerScene extends Phaser.Scene {
         canvas.height = tileH;
         const ctx = canvas.getContext('2d');
 
-        // Clip to the rounded rect — this is the "overflow: hidden" equivalent.
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
             ctx.roundRect(0, 0, tileW, tileH, radius);
@@ -367,9 +368,8 @@ class PuffyRunnerScene extends Phaser.Scene {
         }
         ctx.clip();
 
-        // Draw the ASCII INSIDE the clipped region — corner cells of the
-        // grid simply get painted off and disappear.
-        ctx.fillStyle = colorRgba;
+        // White text — tint will re-color it at render time for day/night.
+        ctx.fillStyle = '#ffffff';
         ctx.font = `${fontSize}px 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace`;
         ctx.textBaseline = 'top';
         for (let i = 0; i < lines.length; i++) {
@@ -380,27 +380,32 @@ class PuffyRunnerScene extends Phaser.Scene {
         return { key, tileW, tileH };
     }
 
+    // Pick the tile tint + alpha that reads on the current bg palette.
+    _rainTintForPalette() {
+        return this.dayNight === 'night'
+            ? { tint: 0xdcdcdc, alpha: 0.45 }   // faded light on dark bg
+            : { tint: 0x282828, alpha: 0.35 };  // faded dark on light bg
+    }
+
     spawnWabbazzarGlyph() {
         if (!this._wabbazzarGlyphs || !this._wabbazzarGlyphs.length) return;
 
         this._ensureRainMask();
 
         const glyph = Phaser.Utils.Array.GetRandom(this._wabbazzarGlyphs);
-        // Match the site's 11px at the baseline viewport; scale with worldScale.
         const fontSize = Math.max(8, Math.round(11 * this.worldScale));
-        // Site uses rgba(245,245,244,0.18) on dark bg. We have a light bg, so
-        // use a dark color with the same 18% alpha for an equally faded look.
-        const tileColor = 'rgba(40, 40, 44, 0.32)';
 
-        const { key, tileH } = this._makeRainTileTexture(glyph, fontSize, tileColor);
+        const { key, tileH } = this._makeRainTileTexture(glyph, fontSize);
         const tile = this.add.image(0, 0, key).setOrigin(0.5, 0.5).setDepth(0);
+
+        const { tint, alpha } = this._rainTintForPalette();
+        tile.setTint(tint);
+        tile.setAlpha(alpha);
 
         const x = Phaser.Math.Between(60, Math.max(80, this.scale.width - 80));
         const startY = -(tileH + 20);
         tile.setPosition(x, startY);
 
-        // Random tilt + horizon clip (mask is on the image, not on a container,
-        // so the mask's world-space rect keeps applying as it falls).
         const startAngle = Phaser.Math.Between(-18, 18);
         tile.setAngle(startAngle);
         tile.setMask(this._rainMask);
@@ -798,9 +803,9 @@ class PuffyRunnerScene extends Phaser.Scene {
     }
 
     // ---------- Day/night ----------
-    // Flipping repaints only 4 HUD text objects (cheap) plus changes camera
-    // bg + star alpha. Background ASCII uses neutral mid-gray that reads on
-    // both palettes — so we don't iterate/re-style them.
+    // Flipping repaints only 4 HUD text objects + any in-flight rain tiles
+    // (via setTint, which is effectively free). Background ASCII uses neutral
+    // mid-gray that reads on both palettes, so we don't iterate/re-style them.
     toggleDayNight() {
         this.dayNight = (this.dayNight === 'day') ? 'night' : 'day';
         const p = this.palette[this.dayNight];
@@ -811,6 +816,15 @@ class PuffyRunnerScene extends Phaser.Scene {
         if (this.hudHigh)     this.hudHigh.setColor(p.hud);
         if (this.hudLives)    this.hudLives.setColor(p.hud);
         if (this.gameOverText) this.gameOverText.setColor(p.hud);
+        // Re-tint all in-flight Wabbazzar rain tiles for the new palette.
+        if (this._wabbazzarRain && this._wabbazzarRain.length) {
+            const { tint, alpha } = this._rainTintForPalette();
+            for (const t of this._wabbazzarRain) {
+                if (!t || !t.setTint) continue;
+                t.setTint(tint);
+                t.setAlpha(alpha);
+            }
+        }
     }
 
     // ---------- Resize ----------

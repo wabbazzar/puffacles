@@ -42,6 +42,7 @@ const POLL_HZ = 60;
 async function main() {
 const VIEW_W = Number(process.env.VIEW_W ?? 1280);
 const VIEW_H = Number(process.env.VIEW_H ?? 720);
+const GAME_URL = process.env.GAME_URL ?? "http://localhost:8001/puffy-runner.html";
 const client = await connect();
 const page = await client.page(`puffy-runner-bot-${VIEW_W}x${VIEW_H}`, {
   viewport: { width: VIEW_W, height: VIEW_H }
@@ -54,7 +55,7 @@ page.on("console", (m) => {
   if (t === "error") errors.push(`CONSOLE_ERROR ${m.text()}`);
 });
 
-await page.goto("http://localhost:8000/puffy-runner.html?t=" + Date.now(), { waitUntil: "networkidle" });
+await page.goto(`${GAME_URL}?t=${Date.now()}`, { waitUntil: "networkidle" });
 await waitForPageLoad(page);
 await page.waitForTimeout(1500);
 

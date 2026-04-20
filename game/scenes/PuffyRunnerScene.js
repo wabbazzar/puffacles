@@ -674,25 +674,29 @@ class PuffyRunnerScene extends Phaser.Scene {
             }
         });
 
-        // Obstacle spawner. Grace period at start; never spawn too close to last obstacle.
+        // Obstacle spawner. Grace period at start; never spawn too close to last
+        // obstacle. Spawn cadence + variety both tighten as the difficulty tier
+        // rises (see _difficultyTier).
         this.spawnAccumulator += dt;
         if (time > this.GRACE_MS && this.spawnAccumulator >= this.nextSpawnIn) {
-            // Horizontal gap scales slightly with speed so faster world still feels fair.
-            const reactionPx = Math.max(280, this.worldSpeed * 1.05);
-            const jitterPx = Phaser.Math.Between(0, 260);
+            const tier = this._difficultyTier();
+            // Base reaction gap shrinks from 1.05× speed (tier 1) down to 0.80×
+            // speed at tier 4 — obstacles arrive noticeably quicker late game.
+            const reactionMult = [1.05, 0.98, 0.88, 0.80][Math.min(tier, 4) - 1];
+            const jitterMax = [260, 220, 180, 140][Math.min(tier, 4) - 1];
+            const reactionPx = Math.max(240, this.worldSpeed * reactionMult);
+            const jitterPx = Phaser.Math.Between(0, jitterMax);
             const minGap = reactionPx + jitterPx;
 
-            // Refuse to spawn if an obstacle already exists to the right of (viewport - minGap).
             const rightmost = this.obstacles.getChildren()
                 .reduce((m, o) => Math.max(m, o.x), -Infinity);
             if (rightmost > this.scale.width - minGap) {
-                // try again shortly.
                 this.nextSpawnIn = 0.15;
                 this.spawnAccumulator = 0;
             } else {
                 this.spawnAccumulator = 0;
                 this.nextSpawnIn = minGap / this.worldSpeed;
-                this.spawnObstacle();
+                this.spawnObstacle(tier);
             }
         }
 
@@ -731,15 +735,47 @@ class PuffyRunnerScene extends Phaser.Scene {
     }
 
     // ---------- Obstacles ----------
-    spawnObstacle() {
-        const r = Math.random();
-        if (r < 0.68) this.spawnCactus();
-        else this.spawnBird();
+    // Difficulty tier gates which obstacle types can spawn.
+    //   Tier 1 (0–600):   cacti only
+    //   Tier 2 (600–1500): cacti + birds
+    //   Tier 3 (1500–3000): + cactus clusters (2–3 close cacti)
+    //   Tier 4 (3000+):     + swooping birds (sine-wave vertical path)
+    _difficultyTier() {
+        const d = this.distance;
+        if (d < 600)  return 1;
+        if (d < 1500) return 2;
+        if (d < 3000) return 3;
+        return 4;
     }
 
-    spawnCactus() {
+    spawnObstacle(tier) {
+        tier = tier || this._difficultyTier();
+        const r = Math.random();
+
+        if (tier === 1) {
+            this.spawnCactus();
+            return;
+        }
+        if (tier === 2) {
+            if (r < 0.70) this.spawnCactus();
+            else          this.spawnBird(/*allowSwoop=*/false);
+            return;
+        }
+        if (tier === 3) {
+            if (r < 0.55)      this.spawnCactus();
+            else if (r < 0.80) this.spawnBird(false);
+            else               this.spawnCactusCluster();
+            return;
+        }
+        // tier 4
+        if (r < 0.42)      this.spawnCactus();
+        else if (r < 0.62) this.spawnBird(false);
+        else if (r < 0.82) this.spawnCactusCluster();
+        else               this.spawnBird(/*allowSwoop=*/true);
+    }
+
+    spawnCactus(xOverride) {
         const textColor = this.BG_TEXT_COLOR;
-        // Compact 2-line cactus glyph.
         const glyphs = [
             ' Y \n/|\\',
             'Y Y\n\\|/',
@@ -755,20 +791,31 @@ class PuffyRunnerScene extends Phaser.Scene {
             lineSpacing: -2,
             align: 'center'
         };
-        const t = this.add.text(this.scale.width + 40, this.GROUND_Y + 2, glyph, style)
-            .setOrigin(0.5, 1);
+        const x = xOverride != null ? xOverride : this.scale.width + 40;
+        const t = this.add.text(x, this.GROUND_Y + 2, glyph, style).setOrigin(0.5, 1);
         this.physics.add.existing(t);
         t.body.setAllowGravity(false);
-        // Narrow + short body — keeps X-overlap tight so jump timing has generous slack.
         const bw = Math.max(8, Math.round(t.width * 0.28));
         const bh = Math.max(16, Math.round(t.height * 0.55));
         t.body.setSize(bw, bh);
         t.body.setOffset((t.width - bw) / 2, (t.height - bh));
         t.obstacleType = 'cactus';
         this.obstacles.add(t);
+        return t;
     }
 
-    spawnBird() {
+    spawnCactusCluster() {
+        // 2 or 3 cacti spaced tight enough that one long jump clears all, but
+        // visually intimidating — and a mistimed jump punishes twice.
+        const count = Math.random() < 0.55 ? 2 : 3;
+        const spacing = Phaser.Math.Between(70, 120);
+        const startX = this.scale.width + 40;
+        for (let i = 0; i < count; i++) {
+            this.spawnCactus(startX + i * spacing);
+        }
+    }
+
+    spawnBird(allowSwoop) {
         const textColor = this.BG_TEXT_COLOR;
         const style = {
             fontFamily: 'Menlo, Consolas, "Courier New", monospace',
@@ -776,17 +823,13 @@ class PuffyRunnerScene extends Phaser.Scene {
             color: textColor,
             align: 'center'
         };
-        // Single glyph — we convey "flapping" via a cheap scale/y wiggle tween
-        // instead of setText (which forces an expensive texture regen each beat).
         const t = this.add.text(this.scale.width + 40, 0, '>-<', style).setOrigin(0.5, 0.5);
 
-        // All birds sit at jumpable heights — no ducking in this build.
-        // Low: skims ground; mid: wing-height; all clear with a timed jump.
         const bucket = Math.random();
-        let y;
-        if (bucket < 0.5)  y = this.GROUND_Y - this.PUFFY_SIZE * 0.40; // mid  → jump
-        else               y = this.GROUND_Y - this.PUFFY_SIZE * 0.18; // low  → jump
-        t.y = y;
+        let baseY;
+        if (bucket < 0.5)  baseY = this.GROUND_Y - this.PUFFY_SIZE * 0.40; // mid
+        else               baseY = this.GROUND_Y - this.PUFFY_SIZE * 0.18; // low
+        t.y = baseY;
 
         this.physics.add.existing(t);
         t.body.setAllowGravity(false);
@@ -797,7 +840,23 @@ class PuffyRunnerScene extends Phaser.Scene {
         t.obstacleType = 'bird';
         t.birdHeight = (bucket < 0.5) ? 'mid' : 'low';
 
+        // Swooper: vertical sine-wave as the bird approaches. Harder to time
+        // a jump around because its Y isn't constant.
+        if (allowSwoop && Math.random() < 0.65) {
+            t.obstacleType = 'swooper';
+            const amp = Math.round(this.PUFFY_SIZE * 0.35);
+            t._swoopTween = this.tweens.add({
+                targets: t,
+                y: baseY - amp,
+                duration: Phaser.Math.Between(500, 800),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
         this.obstacles.add(t);
+        return t;
     }
 
     // ---------- Combat ----------
@@ -807,6 +866,11 @@ class PuffyRunnerScene extends Phaser.Scene {
             obs._flapTween.stop();
             obs._flapTween.remove();
             obs._flapTween = null;
+        }
+        if (obs._swoopTween) {
+            obs._swoopTween.stop();
+            obs._swoopTween.remove();
+            obs._swoopTween = null;
         }
         if (obs._flapTimer) {
             obs._flapTimer.remove(false);

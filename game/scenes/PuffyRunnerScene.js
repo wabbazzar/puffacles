@@ -324,6 +324,42 @@ class PuffyRunnerScene extends Phaser.Scene {
         }
     }
 
+    // Generates (and caches) a seamless rounded-rect stroke texture using the
+    // native canvas roundRect path — avoids the visible corner seams you get
+    // with Phaser's Graphics.strokeRoundedRect at thin stroke widths.
+    _makeSquircleTextureKey(tileW, tileH, radius, strokeColor, strokeW) {
+        const key = `sq_${tileW}x${tileH}_r${radius}_${strokeColor.replace('#','')}_${strokeW}`;
+        if (this.textures.exists(key)) return key;
+        const pad = Math.ceil(strokeW) + 2;
+        const cw = tileW + pad * 2, ch = tileH + pad * 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = cw; canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeW;
+        const r = Math.min(radius, tileW / 2, tileH / 2);
+        const x0 = pad + 0.5, y0 = pad + 0.5;   // half-pixel for crisp stroke
+        const x1 = x0 + tileW - 1, y1 = y0 + tileH - 1;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x0, y0, tileW - 1, tileH - 1, r);
+        } else {
+            ctx.moveTo(x0 + r, y0);
+            ctx.lineTo(x1 - r, y0);
+            ctx.arcTo(x1, y0, x1, y0 + r, r);
+            ctx.lineTo(x1, y1 - r);
+            ctx.arcTo(x1, y1, x1 - r, y1, r);
+            ctx.lineTo(x0 + r, y1);
+            ctx.arcTo(x0, y1, x0, y1 - r, r);
+            ctx.lineTo(x0, y0 + r);
+            ctx.arcTo(x0, y0, x0 + r, y0, r);
+            ctx.closePath();
+        }
+        ctx.stroke();
+        this.textures.addCanvas(key, canvas);
+        return key;
+    }
+
     spawnWabbazzarGlyph() {
         if (!this._wabbazzarGlyphs || !this._wabbazzarGlyphs.length) return;
 
@@ -341,17 +377,18 @@ class PuffyRunnerScene extends Phaser.Scene {
             padding: { x: 2, y: 2 }
         }).setOrigin(0.5, 0.5);
 
-        // Rounded-rect "squircle" tile — iOS-style 22.37% of the short side.
-        // Padding is at least equal to the corner radius so glyph characters
-        // never poke outside the curved area.
-        const pad = Math.max(8, Math.round(fontSize * 1.1));
-        const tileW = text.width + pad * 2;
-        const tileH = text.height + pad * 2;
+        // Rounded-rect tile — padding at least equal to the corner radius so
+        // nothing inside ever pokes past the curve. We quantize the tile size
+        // (and therefore the cached texture key) to multiples of 8 so we
+        // don't create a new texture per pixel-different glyph.
+        const padRaw = Math.max(8, Math.round(fontSize * 1.1));
+        const q = 8;
+        const tileW = Math.ceil((text.width + padRaw * 2) / q) * q;
+        const tileH = Math.ceil((text.height + padRaw * 2) / q) * q;
         const radius = Math.max(6, Math.round(Math.min(tileW, tileH) * 0.2237));
 
-        const bg = this.add.graphics();
-        bg.lineStyle(1.5, 0x6c6c6c, 1);
-        bg.strokeRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, radius);
+        const texKey = this._makeSquircleTextureKey(tileW, tileH, radius, '#6c6c6c', 1.5);
+        const bg = this.add.image(0, 0, texKey).setOrigin(0.5, 0.5);
 
         const x = Phaser.Math.Between(40, Math.max(60, this.scale.width - 60));
         const startY = -(tileH + 20);

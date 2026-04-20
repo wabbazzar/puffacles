@@ -825,10 +825,14 @@ class PuffyRunnerScene extends Phaser.Scene {
         };
         const t = this.add.text(this.scale.width + 40, 0, '>-<', style).setOrigin(0.5, 0.5);
 
+        // Both variants sit inside Puffy's body range so they genuinely threaten
+        // a non-jumping run — no more "bird skimming the dirt" that missed
+        // Puffy's hitbox. Higher variant flies at upper-body; lower variant
+        // crosses mid-body. Both require a jump.
         const bucket = Math.random();
         let baseY;
-        if (bucket < 0.5)  baseY = this.GROUND_Y - this.PUFFY_SIZE * 0.40; // mid
-        else               baseY = this.GROUND_Y - this.PUFFY_SIZE * 0.18; // low
+        if (bucket < 0.5)  baseY = this.GROUND_Y - this.PUFFY_SIZE * 0.72; // upper-body
+        else               baseY = this.GROUND_Y - this.PUFFY_SIZE * 0.48; // mid-body
         t.y = baseY;
 
         this.physics.add.existing(t);
@@ -838,7 +842,7 @@ class PuffyRunnerScene extends Phaser.Scene {
         t.body.setSize(bw, bh);
         t.body.setOffset((t.width - bw) / 2, (t.height - bh) / 2);
         t.obstacleType = 'bird';
-        t.birdHeight = (bucket < 0.5) ? 'mid' : 'low';
+        t.birdHeight = (bucket < 0.5) ? 'high' : 'mid';
 
         // Swooper: vertical sine-wave as the bird approaches. Harder to time
         // a jump around because its Y isn't constant.

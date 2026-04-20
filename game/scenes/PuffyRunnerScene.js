@@ -324,40 +324,60 @@ class PuffyRunnerScene extends Phaser.Scene {
         }
     }
 
-    // Generates (and caches) a seamless rounded-rect stroke texture using the
-    // native canvas roundRect path — avoids the visible corner seams you get
-    // with Phaser's Graphics.strokeRoundedRect at thin stroke widths.
-    _makeSquircleTextureKey(tileW, tileH, radius, strokeColor, strokeW) {
-        const key = `sq_${tileW}x${tileH}_r${radius}_${strokeColor.replace('#','')}_${strokeW}`;
-        if (this.textures.exists(key)) return key;
-        const pad = Math.ceil(strokeW) + 2;
-        const cw = tileW + pad * 2, ch = tileH + pad * 2;
+    // Renders a single glyph into a canvas whose content is clipped to a
+    // squircle-ish rounded rect (native ctx.roundRect + ctx.clip()) and
+    // caches the result as a Phaser texture. No visible outline — the ASCII
+    // characters themselves get their corners chopped, exactly like the site's
+    //   .ascii-phone pre { border-radius: 22.37%; overflow: hidden; }
+    _makeRainTileTexture(glyph, fontSize, colorRgba) {
+        // Texture key is keyed by the glyph content + size + color.
+        const safe = glyph.replace(/[^a-zA-Z0-9]/g, 'x').slice(0, 40);
+        const key = `rain_${safe}_${glyph.length}_${fontSize}_${colorRgba.replace(/[^0-9]/g,'')}`;
+        if (this.textures.exists(key)) return { key };
+
+        const lines = glyph.split('\n');
+        const lineHeight = fontSize;               // matches site: line-height 11px at 11px font
+        const measure = document.createElement('canvas').getContext('2d');
+        measure.font = `${fontSize}px 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace`;
+        let maxW = 0;
+        for (const ln of lines) maxW = Math.max(maxW, measure.measureText(ln).width);
+
+        const pad = Math.max(2, Math.round(fontSize * 0.2));
+        const tileW = Math.ceil(maxW + pad * 2);
+        const tileH = Math.ceil(lines.length * lineHeight + pad * 2);
+        const radius = Math.min(tileW, tileH) * 0.2237;
+
         const canvas = document.createElement('canvas');
-        canvas.width = cw; canvas.height = ch;
+        canvas.width = tileW;
+        canvas.height = tileH;
         const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = strokeW;
-        const r = Math.min(radius, tileW / 2, tileH / 2);
-        const x0 = pad + 0.5, y0 = pad + 0.5;   // half-pixel for crisp stroke
-        const x1 = x0 + tileW - 1, y1 = y0 + tileH - 1;
+
+        // Clip to the rounded rect — this is the "overflow: hidden" equivalent.
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
-            ctx.roundRect(x0, y0, tileW - 1, tileH - 1, r);
+            ctx.roundRect(0, 0, tileW, tileH, radius);
         } else {
-            ctx.moveTo(x0 + r, y0);
-            ctx.lineTo(x1 - r, y0);
-            ctx.arcTo(x1, y0, x1, y0 + r, r);
-            ctx.lineTo(x1, y1 - r);
-            ctx.arcTo(x1, y1, x1 - r, y1, r);
-            ctx.lineTo(x0 + r, y1);
-            ctx.arcTo(x0, y1, x0, y1 - r, r);
-            ctx.lineTo(x0, y0 + r);
-            ctx.arcTo(x0, y0, x0 + r, y0, r);
+            const r = Math.min(radius, tileW / 2, tileH / 2);
+            ctx.moveTo(r, 0);
+            ctx.arcTo(tileW, 0, tileW, r, r);
+            ctx.arcTo(tileW, tileH, tileW - r, tileH, r);
+            ctx.arcTo(0, tileH, 0, tileH - r, r);
+            ctx.arcTo(0, 0, r, 0, r);
             ctx.closePath();
         }
-        ctx.stroke();
+        ctx.clip();
+
+        // Draw the ASCII INSIDE the clipped region — corner cells of the
+        // grid simply get painted off and disappear.
+        ctx.fillStyle = colorRgba;
+        ctx.font = `${fontSize}px 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace`;
+        ctx.textBaseline = 'top';
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], pad, pad + i * lineHeight);
+        }
+
         this.textures.addCanvas(key, canvas);
-        return key;
+        return { key, tileW, tileH };
     }
 
     spawnWabbazzarGlyph() {
@@ -366,65 +386,48 @@ class PuffyRunnerScene extends Phaser.Scene {
         this._ensureRainMask();
 
         const glyph = Phaser.Utils.Array.GetRandom(this._wabbazzarGlyphs);
-        const fontSize = Math.max(9, Math.round(10 * this.worldScale));
+        // Match the site's 11px at the baseline viewport; scale with worldScale.
+        const fontSize = Math.max(8, Math.round(11 * this.worldScale));
+        // Site uses rgba(245,245,244,0.18) on dark bg. We have a light bg, so
+        // use a dark color with the same 18% alpha for an equally faded look.
+        const tileColor = 'rgba(40, 40, 44, 0.32)';
 
-        const text = this.add.text(0, 0, glyph, {
-            fontFamily: 'Menlo, Consolas, "Courier New", monospace',
-            fontSize: fontSize + 'px',
-            color: this.BG_TEXT_COLOR,      // same mid-gray as the rest of the bg
-            align: 'left',
-            lineSpacing: -1,
-            padding: { x: 2, y: 2 }
-        }).setOrigin(0.5, 0.5);
+        const { key, tileH } = this._makeRainTileTexture(glyph, fontSize, tileColor);
+        const tile = this.add.image(0, 0, key).setOrigin(0.5, 0.5).setDepth(0);
 
-        // Rounded-rect tile — padding at least equal to the corner radius so
-        // nothing inside ever pokes past the curve. We quantize the tile size
-        // (and therefore the cached texture key) to multiples of 8 so we
-        // don't create a new texture per pixel-different glyph.
-        const padRaw = Math.max(8, Math.round(fontSize * 1.1));
-        const q = 8;
-        const tileW = Math.ceil((text.width + padRaw * 2) / q) * q;
-        const tileH = Math.ceil((text.height + padRaw * 2) / q) * q;
-        const radius = Math.max(6, Math.round(Math.min(tileW, tileH) * 0.2237));
-
-        const texKey = this._makeSquircleTextureKey(tileW, tileH, radius, '#6c6c6c', 1.5);
-        const bg = this.add.image(0, 0, texKey).setOrigin(0.5, 0.5);
-
-        const x = Phaser.Math.Between(40, Math.max(60, this.scale.width - 60));
+        const x = Phaser.Math.Between(60, Math.max(80, this.scale.width - 80));
         const startY = -(tileH + 20);
-        const container = this.add.container(x, startY, [bg, text])
-            .setAlpha(0.75)
-            .setDepth(0);
-        // Initial tilt — random static rotation the tile carries as it falls.
-        const startAngle = Phaser.Math.Between(-18, 18);
-        container.setAngle(startAngle);
-        container.setMask(this._rainMask);   // clip below the horizon line.
+        tile.setPosition(x, startY);
 
-        // Falling tween — drift downward past the horizon.
+        // Random tilt + horizon clip (mask is on the image, not on a container,
+        // so the mask's world-space rect keeps applying as it falls).
+        const startAngle = Phaser.Math.Between(-18, 18);
+        tile.setAngle(startAngle);
+        tile.setMask(this._rainMask);
+
+        // Falling tween.
         const duration = Phaser.Math.Between(9000, 15000);
         const endY = (this.HORIZON_Y || this.GROUND_Y) + tileH;
         const drift = Phaser.Math.Between(-80, 80);
 
         const fallTween = this.tweens.add({
-            targets: container,
+            targets: tile,
             y: endY,
-            x: container.x + drift,
-            alpha: { from: 0.85, to: 0.45 },
+            x: tile.x + drift,
             duration,
             ease: 'Sine.easeIn',
             onComplete: () => {
-                const idx = this._wabbazzarRain.indexOf(container);
+                const idx = this._wabbazzarRain.indexOf(tile);
                 if (idx >= 0) this._wabbazzarRain.splice(idx, 1);
                 if (swayTween) swayTween.stop();
-                container.destroy();
+                tile.destroy();
             }
         });
 
-        // Sway tween — gently rocks the tile left/right around its tilt
-        // as it falls (mimics the wabbazzar site's floating phones).
+        // Sway tween — gentle rotation around the tilt to mimic floating.
         const swayRange = Phaser.Math.Between(4, 10);
         const swayTween = this.tweens.add({
-            targets: container,
+            targets: tile,
             angle: { from: startAngle - swayRange, to: startAngle + swayRange },
             duration: Phaser.Math.Between(1800, 3000),
             yoyo: true,
@@ -432,9 +435,9 @@ class PuffyRunnerScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        container._fallTween = fallTween;
-        container._swayTween = swayTween;
-        this._wabbazzarRain.push(container);
+        tile._fallTween = fallTween;
+        tile._swayTween = swayTween;
+        this._wabbazzarRain.push(tile);
     }
 
     // ---------- Puffy bootstrap ----------

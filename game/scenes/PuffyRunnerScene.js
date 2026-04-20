@@ -342,45 +342,61 @@ class PuffyRunnerScene extends Phaser.Scene {
         }).setOrigin(0.5, 0.5);
 
         // Rounded-rect "squircle" tile — iOS-style 22.37% of the short side.
-        // Tile blends with whatever bg palette is active: no fill, just a
-        // crisp mid-gray outline so the card reads on light and dark alike.
-        const padX = Math.max(6, Math.round(fontSize * 0.6));
-        const padY = Math.max(6, Math.round(fontSize * 0.6));
-        const tileW = text.width + padX * 2;
-        const tileH = text.height + padY * 2;
-        const radius = Math.max(4, Math.round(Math.min(tileW, tileH) * 0.2237));
+        // Padding is at least equal to the corner radius so glyph characters
+        // never poke outside the curved area.
+        const pad = Math.max(8, Math.round(fontSize * 1.1));
+        const tileW = text.width + pad * 2;
+        const tileH = text.height + pad * 2;
+        const radius = Math.max(6, Math.round(Math.min(tileW, tileH) * 0.2237));
 
         const bg = this.add.graphics();
         bg.lineStyle(1.5, 0x6c6c6c, 1);
         bg.strokeRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, radius);
 
-        const x = Phaser.Math.Between(20, Math.max(40, this.scale.width - 40));
+        const x = Phaser.Math.Between(40, Math.max(60, this.scale.width - 60));
         const startY = -(tileH + 20);
         const container = this.add.container(x, startY, [bg, text])
-            .setAlpha(0.65)
+            .setAlpha(0.75)
             .setDepth(0);
+        // Initial tilt — random static rotation the tile carries as it falls.
+        const startAngle = Phaser.Math.Between(-18, 18);
+        container.setAngle(startAngle);
         container.setMask(this._rainMask);   // clip below the horizon line.
 
-        // Drift downward past the horizon — the mask handles the "sinking" reveal.
+        // Falling tween — drift downward past the horizon.
         const duration = Phaser.Math.Between(9000, 15000);
         const endY = (this.HORIZON_Y || this.GROUND_Y) + tileH;
-        const drift = Phaser.Math.Between(-60, 60);
+        const drift = Phaser.Math.Between(-80, 80);
 
-        this.tweens.add({
+        const fallTween = this.tweens.add({
             targets: container,
             y: endY,
             x: container.x + drift,
-            alpha: { from: 0.7, to: 0.4 },
+            alpha: { from: 0.85, to: 0.45 },
             duration,
-            ease: 'Linear',
+            ease: 'Sine.easeIn',
             onComplete: () => {
                 const idx = this._wabbazzarRain.indexOf(container);
                 if (idx >= 0) this._wabbazzarRain.splice(idx, 1);
+                if (swayTween) swayTween.stop();
                 container.destroy();
-                bg.destroy();
-                text.destroy();
             }
         });
+
+        // Sway tween — gently rocks the tile left/right around its tilt
+        // as it falls (mimics the wabbazzar site's floating phones).
+        const swayRange = Phaser.Math.Between(4, 10);
+        const swayTween = this.tweens.add({
+            targets: container,
+            angle: { from: startAngle - swayRange, to: startAngle + swayRange },
+            duration: Phaser.Math.Between(1800, 3000),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        container._fallTween = fallTween;
+        container._swayTween = swayTween;
         this._wabbazzarRain.push(container);
     }
 

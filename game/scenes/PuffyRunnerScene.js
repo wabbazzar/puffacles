@@ -208,6 +208,9 @@ class PuffyRunnerScene extends Phaser.Scene {
         // --- Mountains (2 tiles, far back) ---
         const mtnChunks = ['/\\', '  ', ' /\\', '/\\/\\', '    ', '  /\\/\\'];
         const mountainY = Math.round(this.GROUND_Y - h * 0.20);
+        // Rain glyphs clip to the mountain silhouette line — that's the visual
+        // horizon the user reads, not the ground strip 20% further down.
+        this.HORIZON_Y = mountainY;
         for (let col = 0; col < 2; col++) {
             const line = buildLongString(mtnChunks, tileChars);
             const t = this.add.text(col * (tileChars * emPx), mountainY, line,
@@ -303,18 +306,17 @@ class PuffyRunnerScene extends Phaser.Scene {
     // Lazily build / rebuild the horizon clip mask so glyphs that drift
     // below the ground line disappear as they "sink" behind the horizon.
     _ensureRainMask() {
-        if (this._rainMask && this._rainMaskForGroundY === this.GROUND_Y &&
+        const horizon = this.HORIZON_Y || this.GROUND_Y;
+        if (this._rainMask && this._rainMaskForGroundY === horizon &&
             this._rainMaskForW === this.scale.width) return;
         if (this._rainMaskShape) this._rainMaskShape.destroy();
         const g = this.make.graphics({ add: false });
         g.fillStyle(0xffffff, 1);
-        g.fillRect(0, 0, this.scale.width, this.GROUND_Y);
+        g.fillRect(0, 0, this.scale.width, horizon);
         this._rainMaskShape = g;
         this._rainMask = g.createGeometryMask();
-        this._rainMaskForGroundY = this.GROUND_Y;
+        this._rainMaskForGroundY = horizon;
         this._rainMaskForW = this.scale.width;
-        // Re-apply the freshly-built mask to any in-flight rain glyphs, since
-        // the previous mask object is now stale after a viewport resize.
         if (this._wabbazzarRain) {
             for (const c of this._wabbazzarRain) {
                 if (c && c.setMask) c.setMask(this._rainMask);
@@ -333,13 +335,15 @@ class PuffyRunnerScene extends Phaser.Scene {
         const text = this.add.text(0, 0, glyph, {
             fontFamily: 'Menlo, Consolas, "Courier New", monospace',
             fontSize: fontSize + 'px',
-            color: '#e4e4ea',            // light text on a dark tile
+            color: this.BG_TEXT_COLOR,      // same mid-gray as the rest of the bg
             align: 'left',
             lineSpacing: -1,
             padding: { x: 2, y: 2 }
         }).setOrigin(0.5, 0.5);
 
         // Rounded-rect "squircle" tile — iOS-style 22.37% of the short side.
+        // Tile blends with whatever bg palette is active: no fill, just a
+        // crisp mid-gray outline so the card reads on light and dark alike.
         const padX = Math.max(6, Math.round(fontSize * 0.6));
         const padY = Math.max(6, Math.round(fontSize * 0.6));
         const tileW = text.width + padX * 2;
@@ -347,23 +351,19 @@ class PuffyRunnerScene extends Phaser.Scene {
         const radius = Math.max(4, Math.round(Math.min(tileW, tileH) * 0.2237));
 
         const bg = this.add.graphics();
-        bg.fillStyle(0x1e1e24, 1);
-        bg.fillRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, radius);
-        // Subtle rim so the squircle reads against light AND dark skies.
-        bg.lineStyle(1, 0x5a5a68, 1);
+        bg.lineStyle(1.5, 0x6c6c6c, 1);
         bg.strokeRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, radius);
 
         const x = Phaser.Math.Between(20, Math.max(40, this.scale.width - 40));
         const startY = -(tileH + 20);
         const container = this.add.container(x, startY, [bg, text])
             .setAlpha(0.65)
-            .setDepth(0);           // sits at bg depth; Puffy/obstacles draw on top.
+            .setDepth(0);
         container.setMask(this._rainMask);   // clip below the horizon line.
 
         // Drift downward past the horizon — the mask handles the "sinking" reveal.
-        // Terminal Y is a bit past GROUND_Y so the tween still completes off-screen.
         const duration = Phaser.Math.Between(9000, 15000);
-        const endY = this.GROUND_Y + tileH;
+        const endY = (this.HORIZON_Y || this.GROUND_Y) + tileH;
         const drift = Phaser.Math.Between(-60, 60);
 
         this.tweens.add({

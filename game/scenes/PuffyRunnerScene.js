@@ -300,41 +300,88 @@ class PuffyRunnerScene extends Phaser.Scene {
         });
     }
 
+    // Lazily build / rebuild the horizon clip mask so glyphs that drift
+    // below the ground line disappear as they "sink" behind the horizon.
+    _ensureRainMask() {
+        if (this._rainMask && this._rainMaskForGroundY === this.GROUND_Y &&
+            this._rainMaskForW === this.scale.width) return;
+        if (this._rainMaskShape) this._rainMaskShape.destroy();
+        const g = this.make.graphics({ add: false });
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(0, 0, this.scale.width, this.GROUND_Y);
+        this._rainMaskShape = g;
+        this._rainMask = g.createGeometryMask();
+        this._rainMaskForGroundY = this.GROUND_Y;
+        this._rainMaskForW = this.scale.width;
+        // Re-apply the freshly-built mask to any in-flight rain glyphs, since
+        // the previous mask object is now stale after a viewport resize.
+        if (this._wabbazzarRain) {
+            for (const c of this._wabbazzarRain) {
+                if (c && c.setMask) c.setMask(this._rainMask);
+            }
+        }
+    }
+
     spawnWabbazzarGlyph() {
         if (!this._wabbazzarGlyphs || !this._wabbazzarGlyphs.length) return;
+
+        this._ensureRainMask();
+
         const glyph = Phaser.Utils.Array.GetRandom(this._wabbazzarGlyphs);
         const fontSize = Math.max(9, Math.round(10 * this.worldScale));
-        const style = {
+
+        const text = this.add.text(0, 0, glyph, {
             fontFamily: 'Menlo, Consolas, "Courier New", monospace',
             fontSize: fontSize + 'px',
-            color: this.BG_SOFT_COLOR,
+            color: '#e4e4ea',            // light text on a dark tile
             align: 'left',
-            lineSpacing: -1
-        };
-        const x = Phaser.Math.Between(20, Math.max(40, this.scale.width - 40));
-        const t = this.add.text(x, -40, glyph, style)
-            .setOrigin(0.5, 1)
-            .setAlpha(0.55)
-            .setDepth(0);     // sits at bg depth — Puffy/obstacles draw on top.
+            lineSpacing: -1,
+            padding: { x: 2, y: 2 }
+        }).setOrigin(0.5, 0.5);
 
-        const duration = Phaser.Math.Between(8000, 14000);
-        const endY = this.scale.height + 120;
+        // Rounded-rect "squircle" tile — iOS-style 22.37% of the short side.
+        const padX = Math.max(6, Math.round(fontSize * 0.6));
+        const padY = Math.max(6, Math.round(fontSize * 0.6));
+        const tileW = text.width + padX * 2;
+        const tileH = text.height + padY * 2;
+        const radius = Math.max(4, Math.round(Math.min(tileW, tileH) * 0.2237));
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x1e1e24, 1);
+        bg.fillRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, radius);
+        // Subtle rim so the squircle reads against light AND dark skies.
+        bg.lineStyle(1, 0x5a5a68, 1);
+        bg.strokeRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, radius);
+
+        const x = Phaser.Math.Between(20, Math.max(40, this.scale.width - 40));
+        const startY = -(tileH + 20);
+        const container = this.add.container(x, startY, [bg, text])
+            .setAlpha(0.65)
+            .setDepth(0);           // sits at bg depth; Puffy/obstacles draw on top.
+        container.setMask(this._rainMask);   // clip below the horizon line.
+
+        // Drift downward past the horizon — the mask handles the "sinking" reveal.
+        // Terminal Y is a bit past GROUND_Y so the tween still completes off-screen.
+        const duration = Phaser.Math.Between(9000, 15000);
+        const endY = this.GROUND_Y + tileH;
         const drift = Phaser.Math.Between(-60, 60);
 
         this.tweens.add({
-            targets: t,
+            targets: container,
             y: endY,
-            x: t.x + drift,
-            alpha: { from: 0.6, to: 0.15 },
+            x: container.x + drift,
+            alpha: { from: 0.7, to: 0.4 },
             duration,
             ease: 'Linear',
             onComplete: () => {
-                const idx = this._wabbazzarRain.indexOf(t);
+                const idx = this._wabbazzarRain.indexOf(container);
                 if (idx >= 0) this._wabbazzarRain.splice(idx, 1);
-                t.destroy();
+                container.destroy();
+                bg.destroy();
+                text.destroy();
             }
         });
-        this._wabbazzarRain.push(t);
+        this._wabbazzarRain.push(container);
     }
 
     // ---------- Puffy bootstrap ----------

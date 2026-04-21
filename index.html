@@ -75,5 +75,13 @@
         window.game = new Phaser.Game(config);
         console.log('Puffy Runner initialized');
     </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+    </script>
 </body>
 </html>

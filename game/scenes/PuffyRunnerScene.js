@@ -137,6 +137,14 @@ class PuffyRunnerScene extends Phaser.Scene {
         this.worldScale = Phaser.Math.Clamp(Math.min(w / 900, h / 540), 0.7, 1.4);
         this.PUFFY_SIZE = Math.round(48 * this.worldScale);
 
+        // Safe-area inset so the HUD doesn't hide behind the iPhone notch /
+        // status bar when installed as a PWA (or in Safari with viewport-fit=
+        // cover). Read from a CSS var set on :root that's bound to env().
+        // Returns 0 on desktop / inside iframe, so always-applying is safe.
+        this.SAFE_TOP = this._readSafeAreaInsetTop();
+        this.SAFE_RIGHT = this._readCssVarPx('--sar');
+        this.SAFE_LEFT = this._readCssVarPx('--sal');
+
         this.GROUND_Y = Math.round(h * 0.82);
         this.PUFFY_X = Math.max(60, Math.round(w * 0.14));
         this.PUFFY_GROUND_Y = this.GROUND_Y - Math.round(this.PUFFY_SIZE / 2);
@@ -160,6 +168,36 @@ class PuffyRunnerScene extends Phaser.Scene {
             hud:     Math.max(13, Math.round(17 * t)),
             over:    Math.max(20, Math.round(28 * t))
         };
+    }
+
+    // Read a CSS custom property from :root and parse its pixel value.
+    _readCssVarPx(varName) {
+        try {
+            const raw = getComputedStyle(document.documentElement)
+                .getPropertyValue(varName).trim();
+            if (!raw) return 0;
+            const n = parseFloat(raw);
+            return Number.isFinite(n) ? n : 0;
+        } catch (_) { return 0; }
+    }
+
+    // Reads env(safe-area-inset-top) via the --sat CSS var on :root. We also
+    // fall back to a live element probe in case the stylesheet doesn't set it
+    // (e.g., if an embedder strips our :root block). Detection of PWA mode is
+    // not required — env() returns 0 when there's nothing to inset.
+    _readSafeAreaInsetTop() {
+        const viaVar = this._readCssVarPx('--sat');
+        if (viaVar > 0) return viaVar;
+        try {
+            const probe = document.createElement('div');
+            probe.style.cssText =
+                'position:fixed;top:0;left:0;visibility:hidden;' +
+                'padding-top:env(safe-area-inset-top,0px);';
+            document.body.appendChild(probe);
+            const v = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+            document.body.removeChild(probe);
+            return v;
+        } catch (_) { return 0; }
     }
 
     // ---------- Background ----------
@@ -513,10 +551,15 @@ class PuffyRunnerScene extends Phaser.Scene {
             fontSize: this.fonts.hud + 'px',
             color: c
         };
-        this.hudDistance = this.add.text(this.scale.width - 10, 8, 'DIST 00000', style).setOrigin(1, 0);
-        this.hudHigh = this.add.text(this.scale.width - 10, 8 + this.fonts.hud + 2,
+        // Push HUD below any iPhone notch / status bar (PWA standalone or
+        // viewport-fit=cover Safari). 0 on desktop / in an iframe.
+        const topY = this._hudTopY();
+        const rightX = this._hudRightX();
+        const leftX = this._hudLeftX();
+        this.hudDistance = this.add.text(rightX, topY, 'DIST 00000', style).setOrigin(1, 0);
+        this.hudHigh = this.add.text(rightX, topY + this.fonts.hud + 2,
             `HI   ${this.padScore(this.highScore)}`, style).setOrigin(1, 0);
-        this.hudLives = this.add.text(10, 8, this.livesString(), style);
+        this.hudLives = this.add.text(leftX, topY, this.livesString(), style);
 
         this.gameOverText = this.add.text(
             this.scale.width / 2, this.scale.height * 0.42,
@@ -528,6 +571,10 @@ class PuffyRunnerScene extends Phaser.Scene {
             }
         ).setOrigin(0.5);
     }
+
+    _hudTopY()   { return 8 + (this.SAFE_TOP || 0); }
+    _hudLeftX()  { return 10 + (this.SAFE_LEFT || 0); }
+    _hudRightX() { return this.scale.width - 10 - (this.SAFE_RIGHT || 0); }
 
     refreshHud() {
         // Only invoke setText when the rendered text actually changes — each
@@ -545,9 +592,12 @@ class PuffyRunnerScene extends Phaser.Scene {
     }
 
     repositionHud() {
-        this.hudDistance.setPosition(this.scale.width - 10, 8);
-        this.hudHigh.setPosition(this.scale.width - 10, 8 + this.fonts.hud + 2);
-        this.hudLives.setPosition(10, 8);
+        const topY = this._hudTopY();
+        const rightX = this._hudRightX();
+        const leftX = this._hudLeftX();
+        this.hudDistance.setPosition(rightX, topY);
+        this.hudHigh.setPosition(rightX, topY + this.fonts.hud + 2);
+        this.hudLives.setPosition(leftX, topY);
         this.gameOverText.setPosition(this.scale.width / 2, this.scale.height * 0.42);
     }
 

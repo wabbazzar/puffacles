@@ -17,15 +17,15 @@ class PuffyRunnerScene extends Phaser.Scene {
         // --- Tunables ---
         this.GRAVITY = 1500;
         this.JUMP_IMPULSE = -640;
-        this.WORLD_SPEED_MIN = 240;
-        this.WORLD_SPEED_MAX = 620;
+        this.WORLD_SPEED_MIN = 280;
+        this.WORLD_SPEED_MAX = 720;
         this.DAY_NIGHT_PERIOD = 2500;
         this.INVULN_MS = 1200;
         this.PUFFY_DISPLAY = 48;       // kept fixed — the hero is the pixel-art focal point
         this.HITBOX_W = 24;            // centered slim hitbox inside the 48×48 sprite
         this.HITBOX_H = 24;
         this.JUMP_BUFFER_MS = 120;     // allow a slightly-early jump press to register on landing
-        this.GRACE_MS = 1400;          // no obstacles spawn during this window at game start
+        this.GRACE_MS = 900;           // no obstacles spawn during this window at game start
 
         // --- State ---
         this.worldSpeed = 0; // set after computeLayout
@@ -657,7 +657,7 @@ class PuffyRunnerScene extends Phaser.Scene {
         this.distance += this.worldSpeed * dt * 0.08;
         this.worldSpeed = Math.min(
             this.SCALED_WORLD_SPEED_MAX,
-            this.SCALED_WORLD_SPEED_MIN + this.distance * 0.18 * this.SPEED_SCALE
+            this.SCALED_WORLD_SPEED_MIN + this.distance * 0.30 * this.SPEED_SCALE
         );
 
         // Puffy per-frame.
@@ -730,10 +730,10 @@ class PuffyRunnerScene extends Phaser.Scene {
         this.spawnAccumulator += dt;
         if (time > this.GRACE_MS && this.spawnAccumulator >= this.nextSpawnIn) {
             const tier = this._difficultyTier();
-            // Base reaction gap shrinks from 1.05× speed (tier 1) down to 0.80×
+            // Base reaction gap shrinks from 0.92× speed (tier 1) down to 0.65×
             // speed at tier 4 — obstacles arrive noticeably quicker late game.
-            const reactionMult = [1.05, 0.98, 0.88, 0.80][Math.min(tier, 4) - 1];
-            const jitterMax = [260, 220, 180, 140][Math.min(tier, 4) - 1];
+            const reactionMult = [0.92, 0.82, 0.72, 0.65][Math.min(tier, 4) - 1];
+            const jitterMax = [200, 160, 120, 90][Math.min(tier, 4) - 1];
             const reactionPx = Math.max(240, this.worldSpeed * reactionMult);
             const jitterPx = Phaser.Math.Between(0, jitterMax);
             const minGap = reactionPx + jitterPx;
@@ -786,15 +786,15 @@ class PuffyRunnerScene extends Phaser.Scene {
 
     // ---------- Obstacles ----------
     // Difficulty tier gates which obstacle types can spawn.
-    //   Tier 1 (0–600):   cacti only
-    //   Tier 2 (600–1500): cacti + birds
-    //   Tier 3 (1500–3000): + cactus clusters (2–3 close cacti)
-    //   Tier 4 (3000+):     + swooping birds (sine-wave vertical path)
+    //   Tier 1 (0–350):    cacti only
+    //   Tier 2 (350–900):  cacti + birds
+    //   Tier 3 (900–1800): + cactus clusters (2–3 close cacti)
+    //   Tier 4 (1800+):    + swooping birds (sine-wave vertical path)
     _difficultyTier() {
         const d = this.distance;
-        if (d < 600)  return 1;
-        if (d < 1500) return 2;
-        if (d < 3000) return 3;
+        if (d < 350)  return 1;
+        if (d < 900)  return 2;
+        if (d < 1800) return 3;
         return 4;
     }
 
@@ -817,10 +817,10 @@ class PuffyRunnerScene extends Phaser.Scene {
             else               this.spawnCactusCluster();
             return;
         }
-        // tier 4
-        if (r < 0.42)      this.spawnCactus();
-        else if (r < 0.62) this.spawnBird(false);
-        else if (r < 0.82) this.spawnCactusCluster();
+        // tier 4 — leans harder on swoopers and clusters than tier 3
+        if (r < 0.30)      this.spawnCactus();
+        else if (r < 0.50) this.spawnBird(false);
+        else if (r < 0.72) this.spawnCactusCluster();
         else               this.spawnBird(/*allowSwoop=*/true);
     }
 
